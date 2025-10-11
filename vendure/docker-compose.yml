@@ -1,0 +1,25 @@
+# INFORMATION
+# We are not exposing the default ports for the services in this file.
+# This is to avoid conflicts with existing services on your machine.
+# In case you don't have any services running on the default ports, you can expose them by changing the
+# ports section in the services block. Please don't forget to update the ports in the .env file as well.
+
+services:
+    postgres_db:
+        image: postgres:16-alpine
+        volumes:
+            - postgres_db_data:/var/lib/postgresql/data
+        ports:
+            - "6543:5432"
+        environment:
+            POSTGRES_DB: vendure
+            POSTGRES_USER: vendure
+            POSTGRES_PASSWORD: YRMBOIaeYOlzw-WzpV28og
+        labels:
+            - "io.vendure.create.name=melindapotondi"
+
+volumes:
+    postgres_db_data:
+        driver: local
+        labels:
+            - "io.vendure.create.name=melindapotondi"

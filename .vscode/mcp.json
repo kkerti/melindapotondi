@@ -1,0 +1,20 @@
+{
+	"servers": {
+		"vendure-local-mcp": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"@vendure/mcp-server@1.0.4-alpha",
+				"--projectPath",
+				"${input:vendure-project-path}"
+			]
+		}
+	},
+	"inputs": [
+		{
+			"id": "vendure-project-path",
+			"type": "promptString",
+			"description": "Absolute path to your Vendure project root"
+		}
+	]
+}
