@@ -1,0 +1,41 @@
+---
+import { createTranslationFunction } from '../i18n';
+
+const t = await createTranslationFunction(Astro.url);
+---
+
+<div class="py-8">
+    <h2 class="text-2xl  mb-4">
+        <span class="border-dotted border-b-pink-600 border-b-4">{t('ui.contact.title')}</span></h2>
+    <button 
+        id="contact-btn"
+        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded cursor-pointer transition-colors"
+    >
+        📧 {t('ui.contact.button')}
+    </button>
+    <div id="email" class="hidden mt-4">
+        <!-- Email will be revealed here -->
+    </div>
+</div>
+
+<script>
+    function showEmail() {
+        const email = ['hello', '@', 'melindapotondi', '.', 'eu'].join('');
+        const emailDiv = document.getElementById('email');
+        const button = document.getElementById('contact-btn');
+        
+        if (emailDiv && button) {
+            emailDiv.innerHTML = `<a href="mailto:${email}" class="text-blue-600 hover:text-blue-800 underline">${email}</a>`;
+            emailDiv.classList.remove('hidden');
+            button.style.display = 'none'; // Hide button after click
+        }
+    }
+
+    // Add event listener when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        const button = document.getElementById('contact-btn');
+        if (button) {
+            button.addEventListener('click', showEmail);
+        }
+    });
+</script>

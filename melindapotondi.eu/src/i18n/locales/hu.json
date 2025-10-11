@@ -1,4 +1,10 @@
 {
+    "components": {
+        "events": {
+            "title": "Közeli vásárok",
+            "description": "Találkozhatsz velem a következő vásárokon, ahol lényeim, printjeim és matricáim közül válogathatsz"
+        }
+    },
   "ui": {
     "navigation": {
       "home": "Főoldal",
@@ -20,6 +26,10 @@
       "save": "Mentés",
       "edit": "Szerkesztés",
       "delete": "Törlés"
+    },
+     "contact": {
+        "title": "Lépj velem kapcsolatba",
+        "button": "Kapcsolat / Contact"
     },
     "common": {
       "loading": "Betöltés...",
@@ -65,7 +75,7 @@
     },
     "newsletter": {
       "title": "Hírlevél feliratkozás",
-      "description": "Iratkozzon fel hírlevelünkre, hogy elsőként értesüljön újdonságainkról!",
+      "description": "Iratkozz fel hírlevelemre, ha szeretnél értesítést kapni ilyen tipikus hírleveles dolgokról ~(•̀ᴗ•́)و",
       "subscribe": "Feliratkozás",
       "subscribing": "Feliratkozás...",
       "messages": {
@@ -76,6 +86,14 @@
         "invalidEmail": "Érvénytelen email cím formátum",
         "processing": "Feldolgozás..."
       }
+    },
+    "events": {
+      "title": "Események",
+      "upcoming": "Közelgő események",
+      "past": "Múltbeli események",
+      "noUpcoming": "Jelenleg nincsenek közelgő események",
+      "noPast": "Nincsenek múltbeli események",
+      "venue": "Helyszín"
     },
     "states": {
       "loading": "Betöltés",
@@ -133,7 +151,8 @@
     "author": "Melinda Potondi"
   },
   "footer": {
-    "copyright": "© 2025 Melinda Potondi. Minden jog fenntartva.",
+    "copyright": "Melinda Potondi. Minden jog fenntartva.",
+    "developer": "Weboldalt készítette kkerti.",
     "links": {
       "privacy": "Adatvédelmi szabályzat",
       "terms": "Felhasználási feltételek"

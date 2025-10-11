@@ -1,0 +1,117 @@
+---
+import { createTranslationFunction } from '../i18n/index.ts';
+
+// Get translation function and current locale
+const t = await createTranslationFunction(Astro.url);
+const currentLocale = Astro.currentLocale || 'hu';
+
+// Event data - easily maintainable array
+const events = [
+    { 
+        date: "2025-10-18", 
+        hours: "11:00-19:00", 
+        venue: "Pikszis Kultúrközpont" 
+    },
+    { 
+        date: "2025-05-18", 
+        hours: "10:00-18:00", 
+        venue: "Maker's Market" 
+    },
+    { 
+        date: "2024-12-21", 
+        hours: "11:00-17:00", 
+        venue: "Kaffeine Vásár" 
+    }
+];
+
+// Get current date for comparison
+const today = new Date();
+today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
+
+// Parse and categorize events
+const parsedEvents = events.map(event => {
+    const eventDate = new Date(event.date);
+    eventDate.setHours(0, 0, 0, 0);
+    
+    return {
+        ...event,
+        dateObj: eventDate,
+        isPast: eventDate < today,
+        formattedDate: eventDate.toLocaleDateString(currentLocale === 'hu' ? 'hu-HU' : 'en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            weekday: 'long'
+        })
+    };
+});
+
+// Separate upcoming and past events
+const upcomingEvents = parsedEvents
+    .filter(event => !event.isPast)
+    .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+
+const pastEvents = parsedEvents
+    .filter(event => event.isPast)
+    .sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
+---
+
+<div class="w-full">
+    <h2 class="text-2xl font-bold mb-6 text-center">
+        {t('ui.events.title')}
+    </h2>
+    
+    <div class="grid md:grid-cols-2 gap-8">
+        <!-- Upcoming Events -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-semibold mb-4 text-green-700 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                {t('ui.events.upcoming')}
+            </h3>
+            
+            {upcomingEvents.length === 0 ? (
+                <p class="text-gray-500 italic">{t('ui.events.noUpcoming')}</p>
+            ) : (
+                <div class="space-y-4">
+                    {upcomingEvents.map(event => (
+                        <div class="border-l-4 border-green-500 bg-green-50 p-4 rounded-r-md">
+                            <div class="font-medium text-green-800">{event.formattedDate}</div>
+                            <div class="text-sm text-green-600 mt-1">⏰ {event.hours}</div>
+                            <div class="text-sm text-gray-700 mt-2">
+                                <span class="font-medium">{t('ui.events.venue')}:</span> {event.venue}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+
+        <!-- Past Events -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-semibold mb-4 text-gray-600 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                {t('ui.events.past')}
+            </h3>
+            
+            {pastEvents.length === 0 ? (
+                <p class="text-gray-500 italic">{t('ui.events.noPast')}</p>
+            ) : (
+                <div class="space-y-3">
+                    {pastEvents.map(event => (
+                        <div class="border-l-4 border-gray-300 bg-gray-50 p-3 rounded-r-md opacity-75">
+                            <div class="font-medium text-gray-700">{event.formattedDate}</div>
+                            <div class="text-sm text-gray-500 mt-1">⏰ {event.hours}</div>
+                            <div class="text-sm text-gray-600 mt-2">
+                                <span class="font-medium">{t('ui.events.venue')}:</span> {event.venue}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    </div>
+</div>

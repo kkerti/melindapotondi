@@ -1,3 +1,4 @@
+
 {
   "ui": {
     "navigation": {
@@ -34,6 +35,10 @@
       "required": "required",
       "optional": "optional"
     },
+    "contact": {
+        "title": "Get in touch",
+        "button": "Write a mail"
+    },
     "form": {
       "labels": {
         "email": "Email Address",
@@ -65,7 +70,7 @@
     },
     "newsletter": {
       "title": "Newsletter Subscription",
-      "description": "Subscribe to our newsletter to be the first to know about our updates!",
+      "description": "Subscribe to my newsletter if you are interested in newsletter stuff from me ~(•̀ᴗ•́)و",
       "subscribe": "Subscribe",
       "subscribing": "Subscribing...",
       "messages": {
@@ -76,6 +81,14 @@
         "invalidEmail": "Invalid email address format",
         "processing": "Processing..."
       }
+    },
+    "events": {
+      "title": "Events",
+      "upcoming": "Upcoming Events",
+      "past": "Past Events",
+      "noUpcoming": "No upcoming events at the moment",
+      "noPast": "No past events",
+      "venue": "Venue"
     },
     "states": {
       "loading": "Loading",
@@ -133,7 +146,8 @@
     "author": "Melinda Potondi"
   },
   "footer": {
-    "copyright": "© 2025 Melinda Potondi. All rights reserved.",
+    "copyright": "Melinda Potondi. All rights reserved.",
+    "developer": "Website developed by kkerti.",
     "links": {
       "privacy": "Privacy Policy",
       "terms": "Terms of Service"

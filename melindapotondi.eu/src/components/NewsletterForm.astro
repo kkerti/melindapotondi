@@ -1,21 +1,19 @@
 ---
 import { getLangFromUrl, createTranslationFunction } from '../i18n';
-
 export interface Props {
   class?: string;
 }
-
 const { class: className } = Astro.props;
-
 const lang = getLangFromUrl(Astro.url);
 const t = await createTranslationFunction(Astro.url);
-
 ---
 
-<div class={`bg-white rounded-lg shadow-md p-6 ${className || ''}`}>
-  <h3 class="text-xl font-bold text-gray-900 mb-4">
+<div class={`bg-white border-sky-300 border-dashed w-full rounded-2xl p-8 ${className || ''}`}>
+  <h3 class="text-2xl font-bold py-2">
     {t('ui.newsletter.title')}
   </h3>
+
+  <p class="py-4">{t('ui.newsletter.description')}</p>
   
   <form id="newsletter-form" class="space-y-4">
     <div>
@@ -82,18 +80,118 @@ const t = await createTranslationFunction(Astro.url);
 </div>
 
 <script>
+import { isInputError } from "astro:actions";
 import { actions } from "astro:actions";
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('newsletter-form') as HTMLFormElement;
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('newsletter-form') as HTMLFormElement;
+    const formResult = document.getElementById('newsletter-result') as HTMLElement;
+    const submitButton = form?.querySelector('button[type="submit"]') as HTMLButtonElement;
 
-        form.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(form);
-            const {data, error} = await actions.subscribeToNewsletter(formData);
-            console.log(data, error)
+    // Get language from hidden input for translations
+    const langInput = form?.querySelector('input[name="lang"]') as HTMLInputElement;
+    const currentLang = langInput?.value || 'hu';
+
+    // Translation keys - these should match the JSON structure
+    const translations = {
+        hu: {
+            success: 'Sikeresen feliratkozott a hírlevélre!',
+            updated: 'Kapcsolat frissítve!',
+            alreadySubscribed: 'Ezzel az email címmel már feliratkozott',
+            networkError: 'Hálózati hiba. Kérjük, próbálja újra.',
+            generalError: 'Hiba: Nem sikerült a feliratkozás',
+            processing: 'Feldolgozás...',
+            subscribing: 'Feliratkozás...',
+            subscribe: 'Feliratkozás'
+        },
+        en: {
+            success: 'Successfully subscribed to the newsletter!',
+            updated: 'Contact updated!',
+            alreadySubscribed: 'Already subscribed with this email address',
+            networkError: 'Network error. Please try again.',
+            generalError: 'Error: Failed to subscribe',
+            processing: 'Processing...',
+            subscribing: 'Subscribing...',
+            subscribe: 'Subscribe'
+        }
+    } as const;
+
+    const t = translations[currentLang as keyof typeof translations] || translations.hu;
+
+    function showMessage(message: string, isError = false) {
+        if (formResult) {
+            formResult.textContent = message;
+            formResult.className = `mt-4 p-3 rounded-md text-sm font-medium transition-all duration-300 ${
+                isError 
+                    ? 'bg-red-50 text-red-800 border border-red-200' 
+                    : 'bg-green-50 text-green-800 border border-green-200'
+            }`;
+            formResult.classList.remove('hidden');
+        }
+    }
+
+    function setButtonState(isLoading = false) {
+        if (submitButton) {
+            submitButton.disabled = isLoading;
+            submitButton.textContent = isLoading ? t.subscribing : t.subscribe;
+        }
+    }
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
         
-        });
+        // Clear previous results
+        if (formResult) {
+            formResult.classList.add('hidden');
+        }
+
+        // Show loading state
+        setButtonState(true);
+        showMessage(t.processing);
+
+        try {
+            const formData = new FormData(form);
+            const { data, error } = await actions.subscribeToNewsletter(formData);
+            
+            if (error) {
+                // Handle validation errors and action errors
+                let errorMessage: string = t.generalError;
+                
+                if (isInputError(error)) {
+                    // Handle validation errors from Zod schema
+                    const fieldErrors = Object.values(error.fields).flat();
+                    errorMessage = fieldErrors.join(', ');
+                } else if (error.code === 'BAD_REQUEST') {
+                    // Handle specific errors like duplicate email
+                    errorMessage = t.alreadySubscribed;
+                } else if (error.message) {
+                    // Handle other action errors
+                    if (error.message.includes('Already subscribed')) {
+                        errorMessage = t.alreadySubscribed;
+                    } else {
+                        errorMessage = error.message;
+                    }
+                }
+                
+                showMessage(errorMessage, true);
+            } else if (data) {
+                // Handle success
+                const successMessage = data.message === 'Contact updated' 
+                    ? t.updated 
+                    : t.success;
+                showMessage(successMessage);
+                
+                // Reset form on success
+                form.reset();
+            }
+        } catch (error) {
+            // Handle network or unexpected errors
+            console.error('Newsletter subscription error:', error);
+            showMessage(t.networkError, true);
+        } finally {
+            // Reset button state
+            setButtonState(false);
+        }
     });
+});
 </script>

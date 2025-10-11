@@ -1,21 +1,22 @@
 ---
 import { getLangFromUrl, createTranslationFunction, getAlternateUrls, languages } from '../i18n';
+import MPLogo from '../assets/MPLogo.svg';
 
 const lang = getLangFromUrl(Astro.url);
 const t = await createTranslationFunction(Astro.url);
 const alternateUrls = getAlternateUrls(Astro.url);
 
 const navigationItems = [
-  { key: 'ui.navigation.contact', href: lang === 'hu' ? '/contact' : '/en/contact' }
+//   { key: 'ui.navigation.contact', href: lang === 'hu' ? '/contact' : '/en/contact' }
 ];
 ---
 
 <nav class="bg-white shadow-lg">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex justify-between h-16">
+    <div class="flex justify-between h-24">
       <div class="flex items-center">
         <a href={lang === 'hu' ? '/' : '/en/'} class="text-xl font-bold text-gray-800">
-          Melinda Potondi
+          <MPLogo class="h-20 text-amber-300"></MPLogo>
         </a>
       </div>
       

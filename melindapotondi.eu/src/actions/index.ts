@@ -71,6 +71,15 @@ const subscribeToNewsletter = defineAction({
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
+            
+            // Handle specific Brevo errors
+            if (response.status === 400 && errorData.code === 'duplicate_parameter') {
+                throw new ActionError({
+                    code: "BAD_REQUEST", 
+                    message: 'Already subscribed with this email address'
+                });
+            }
+            
             throw new ActionError({
                 code: "EXPECTATION_FAILED", 
                 message: errorData.message || 'Failed to subscribe to newsletter'
@@ -79,7 +88,7 @@ const subscribeToNewsletter = defineAction({
 
         return {
             success: true,
-            message: response.status == 204 ? "Contact updated" : "Contact created",
+            message: response.status === 204 ? "Contact updated" : "Contact created",
             email,
         };
     }

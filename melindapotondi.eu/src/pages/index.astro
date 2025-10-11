@@ -1,44 +1,59 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Navigation from '../components/Navigation.astro';
-import Hero from '../components/Hero.astro';
-import Button from '../components/Button.astro';
 import NewsletterForm from '../components/NewsletterForm.astro';
+import Events from '../components/Events.astro';
+import { Image } from 'astro:assets';
+import Contact from '../components/Contact.astro';
+const images = import.meta.glob<{ default: ImageMetadata }>('/src/assets/Lenyek*.{jpeg,jpg,png,gif}');
 ---
 
 <Layout>
-
-	<Hero 
-		titleKey="pages.home.title"
-		subtitleKey="pages.home.description"
-		class="bg-gradient-to-br from-blue-50 to-indigo-100"
-	>
-		<div class="mt-8 space-x-4">
-			<Button 
-				textKey="ui.buttons.contact" 
-				href="/en/contact"
-				variant="primary"
-			/>
-			<Button 
-				textKey="ui.buttons.readMore" 
-				href="/en/about"
-				variant="secondary"
-			/>
+	<section class="py-4 md:py-8 max-w-7xl mx-auto w-full px-4">
+		<div class="max-w-prose border-4 p-4 rounded-2xl border-amber-200">
+			<h2 class="font-bold text-2xl py-2">Hello, üdvözöllek az oldalamon! :)</h2>
+			<p class="py-2">Potondi Melinda vagyok, MoMe animációs diplomával, kisképzős grafikai végzettséggel. Egyetemi éveim alatt beleszerettem a kerámia művészetébe és mostanra ha tehetem úgy legtöbb időm valamilyen gyúrható, festhető, égethető projekttel töltöm. Leggyakrabban a soha-nem-ugyanolyan <i>lélekállatka</i> koncepcióval készült lényeimmel találkozhatsz <a class="text-blue-500 hover:text-blue-600 hover:underline" target="_BLANK" href="https://instagram.com/melinda.potondi">instagram</a> oldalamon, vagy különböző, legfőképp budapesti művész vásárokon.</p>
 		</div>
-	</Hero>
+	</section>
 
-	<section class="py-16 bg-white">
-		<div class="max-w-4xl mx-auto px-4 text-center">
-			<h2 class="text-3xl font-bold text-gray-900 mb-8">
-				Helloka!
-			</h2>
-			<p class="text-lg text-gray-600 leading-relaxed mb-8">
-				Ez itt a szuper weboldalam, nézz körbe
+	<section class="container mx-auto w-full grid sm:grid-cols-2 md:grid-cols-5 justify-center gap-4 px-2 md:px-4 md:py-8">
+		{Object.entries(images).map((img: any) => 
+			<Image class="rounded-lg" src={img[0]} width={400} height={400} inferSize={true} alt="Lények / Creatures"/> 
+		)}
+	</section>
+
+	<section class="py-4 md:py-8 max-w-7xl mx-auto flex justify-center w-full px-4">
+		<div class="max-w-prose justify-end border-4 p-4 border-dashed rounded-2xl border-sky-200">
+			<h2 class="font-bold text-2xl py-2">Új műhely, workshopok...</h2>
+			<p class="py-2">
+				2024-ben elkezdtem kis csoportos keramikus workshopokat tartani. Egy ideig az Eötvös utcai Samott Stúdióban segítettem másoknak első agyag dolgait megvalósítani, megismertetni az eszközöket és eljárásokat. 
+			</p>
+			<p class="py-2">
+				Most 2025 októberében Őrmezőn alakítottam ki egy saját <i>lakás stúdiót</i>, ahol újra indulnak workshopok. Erről még további infók jönnek ezen az oldalon is hamarosan.
 			</p>
 		</div>
 	</section>
 
-	<section class="max-w-1/3 mx-auto">
-		<NewsletterForm/>
+
+    <section class="max-w-7xl mx-auto w-full px-4 md:py-8">
+       <Contact/>
+    </section>
+
+	<section class="py-8 md:py-12">
+		<div class="max-w-6xl mx-auto px-4">
+			<Events />
+		</div>
+	</section>
+
+	<section class="svg-pattern w-full mt-4 md:mt-8">
+		<div class="max-w-5xl mx-auto py-4 px-4 md:py-8">
+			<NewsletterForm class='w-full py-8'/>
+		</div>
 	</section>
 </Layout>
+
+<style>
+	.svg-pattern {
+	background-color: #5c0a0a30;
+	background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.46'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");	
+}
+</style>
