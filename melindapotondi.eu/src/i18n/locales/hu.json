@@ -1,0 +1,38 @@
+{
+  "ui": {
+    "navigation": {
+      "home": "Főoldal",
+      "about": "Rólam",
+      "services": "Szolgáltatások",
+      "contact": "Kapcsolat"
+    },
+    "buttons": {
+      "readMore": "Tovább olvas",
+      "contact": "Kapcsolatfelvétel",
+      "back": "Vissza",
+      "submit": "Küldés"
+    },
+    "common": {
+      "loading": "Betöltés...",
+      "error": "Hiba történt",
+      "welcome": "Üdvözlöm",
+      "language": "Nyelv",
+      "close": "Bezárás"
+    }
+  },
+  "pages": {
+    "home": {
+      "title": "Melinda Potondi",
+      "subtitle": "Főoldal",
+      "description": "Üdvözlöm a weboldalamon!"
+    },
+    "about": {
+      "title": "Rólam",
+      "description": "Ismerj meg engem jobban!"
+    }
+  },
+  "meta": {
+    "siteTitle": "Melinda Potondi",
+    "siteDescription": "Melinda Potondi hivatalos weboldala"
+  }
+}

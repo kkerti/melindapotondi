@@ -1,0 +1,56 @@
+---
+import { getLangFromUrl, loadTranslations } from '../i18n';
+
+export interface Props {
+  variant?: 'primary' | 'secondary';
+  textKey: string;
+  href?: string;
+  onClick?: string;
+  class?: string;
+}
+
+const { variant = 'primary', textKey, href, onClick, class: className } = Astro.props;
+
+const lang = getLangFromUrl(Astro.url);
+const translations = await loadTranslations(lang);
+
+function t(key: string): string {
+  const keys = key.split('.');
+  let value = translations;
+  
+  for (const k of keys) {
+    if (value && typeof value === 'object' && k in value) {
+      value = value[k];
+    } else {
+      return key;
+    }
+  }
+  
+  return typeof value === 'string' ? value : key;
+}
+
+const baseClasses = "px-6 py-3 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2";
+
+const variantClasses = {
+  primary: "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 shadow-lg hover:shadow-xl",
+  secondary: "bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-400 border border-gray-300"
+};
+
+const buttonClasses = `${baseClasses} ${variantClasses[variant]} ${className || ''}`;
+---
+
+{href ? (
+  <a 
+    href={href} 
+    class={buttonClasses}
+  >
+    {t(textKey)}
+  </a>
+) : (
+  <button 
+    class={buttonClasses}
+    onclick={onClick}
+  >
+    {t(textKey)}
+  </button>
+)}

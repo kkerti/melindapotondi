@@ -1,0 +1,41 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navigation from '../../components/Navigation.astro';
+import Hero from '../../components/Hero.astro';
+import Button from '../../components/Button.astro';
+---
+
+<Layout>
+	<Navigation />
+	
+	<Hero 
+		titleKey="pages.home.title"
+		subtitleKey="pages.home.description"
+		class="bg-gradient-to-br from-blue-50 to-indigo-100"
+	>
+		<div class="mt-8 space-x-4">
+			<Button 
+				textKey="ui.buttons.contact" 
+				href="/en/contact"
+				variant="primary"
+			/>
+			<Button 
+				textKey="ui.buttons.readMore" 
+				href="/en/about"
+				variant="secondary"
+			/>
+		</div>
+	</Hero>
+
+	<section class="py-16 bg-white">
+		<div class="max-w-4xl mx-auto px-4 text-center">
+			<h2 class="text-3xl font-bold text-gray-900 mb-8">
+				Welcome!
+			</h2>
+			<p class="text-lg text-gray-600 leading-relaxed">
+				This is my website where you can get to know me and my work. 
+				Here you'll find all the important information about me and my services.
+			</p>
+		</div>
+	</section>
+</Layout>

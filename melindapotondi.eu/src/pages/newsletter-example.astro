@@ -1,0 +1,19 @@
+---
+// Example page demonstrating how to use the NewsletterSignup component
+import Layout from '../layouts/Layout.astro';
+import NewsletterSignup from '../components/NewsletterSignup.astro';
+---
+
+<Layout title="Newsletter Signup Example">
+  <main class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-8">Newsletter Subscription</h1>
+    
+    <div class="max-w-md mx-auto">
+      <p class="mb-6 text-gray-600">
+        Subscribe to our newsletter to stay updated with the latest news and updates.
+      </p>
+      
+      <NewsletterSignup />
+    </div>
+  </main>
+</Layout>

@@ -1,0 +1,112 @@
+---
+import { getLangFromUrl, loadTranslations, getAlternateUrls, languages } from '../i18n';
+
+const lang = getLangFromUrl(Astro.url);
+const translations = await loadTranslations(lang);
+const alternateUrls = getAlternateUrls(Astro.url);
+
+const navigationItems = [
+  { key: 'ui.navigation.home', href: lang === 'hu' ? '/' : '/en/' },
+  { key: 'ui.navigation.about', href: lang === 'hu' ? '/about' : '/en/about' },
+  { key: 'ui.navigation.services', href: lang === 'hu' ? '/services' : '/en/services' },
+  { key: 'ui.navigation.contact', href: lang === 'hu' ? '/contact' : '/en/contact' }
+];
+
+function t(key: string): string {
+  const keys = key.split('.');
+  let value = translations;
+  
+  for (const k of keys) {
+    if (value && typeof value === 'object' && k in value) {
+      value = value[k];
+    } else {
+      return key;
+    }
+  }
+  
+  return typeof value === 'string' ? value : key;
+}
+---
+
+<nav class="bg-white shadow-lg">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between h-16">
+      <div class="flex items-center">
+        <a href={lang === 'hu' ? '/' : '/en/'} class="text-xl font-bold text-gray-800">
+          Melinda Potondi
+        </a>
+      </div>
+      
+      <!-- Navigation Links -->
+      <div class="hidden md:flex items-center space-x-8">
+        {navigationItems.map(item => (
+          <a 
+            href={item.href} 
+            class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+          >
+            {t(item.key)}
+          </a>
+        ))}
+      </div>
+
+      <!-- Language Switcher -->
+      <div class="flex items-center space-x-4">
+        <span class="text-sm text-gray-600">{t('ui.common.language')}:</span>
+        {Object.entries(languages).map(([code, name]) => (
+          <a
+            href={alternateUrls[code as keyof typeof languages]}
+            class={`px-2 py-1 rounded text-sm font-medium transition-colors ${
+              lang === code 
+                ? 'bg-blue-500 text-white' 
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            {code.toUpperCase()}
+          </a>
+        ))}
+      </div>
+
+      <!-- Mobile menu button -->
+      <div class="md:hidden flex items-center">
+        <button
+          type="button"
+          class="mobile-menu-button inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+          aria-controls="mobile-menu"
+          aria-expanded="false"
+        >
+          <span class="sr-only">Open main menu</span>
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile menu -->
+    <div class="mobile-menu hidden md:hidden">
+      <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+        {navigationItems.map(item => (
+          <a
+            href={item.href}
+            class="text-gray-600 hover:text-gray-900 block px-3 py-2 rounded-md text-base font-medium"
+          >
+            {t(item.key)}
+          </a>
+        ))}
+      </div>
+    </div>
+  </div>
+</nav>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const button = document.querySelector('.mobile-menu-button');
+    const menu = document.querySelector('.mobile-menu');
+    
+    if (button && menu) {
+      button.addEventListener('click', function() {
+        menu.classList.toggle('hidden');
+      });
+    }
+  });
+</script>

@@ -1,0 +1,38 @@
+{
+  "ui": {
+    "navigation": {
+      "home": "Home",
+      "about": "About",
+      "services": "Services",
+      "contact": "Contact"
+    },
+    "buttons": {
+      "readMore": "Read More",
+      "contact": "Get in Touch",
+      "back": "Back",
+      "submit": "Submit"
+    },
+    "common": {
+      "loading": "Loading...",
+      "error": "An error occurred",
+      "welcome": "Welcome",
+      "language": "Language",
+      "close": "Close"
+    }
+  },
+  "pages": {
+    "home": {
+      "title": "Melinda Potondi",
+      "subtitle": "Home",
+      "description": "Welcome to my website!"
+    },
+    "about": {
+      "title": "About Me",
+      "description": "Get to know me better!"
+    }
+  },
+  "meta": {
+    "siteTitle": "Melinda Potondi",
+    "siteDescription": "Official website of Melinda Potondi"
+  }
+}

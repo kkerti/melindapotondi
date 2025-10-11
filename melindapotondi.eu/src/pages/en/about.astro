@@ -1,0 +1,29 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navigation from '../../components/Navigation.astro';
+import Hero from '../../components/Hero.astro';
+---
+
+<Layout title="About Me - Melinda Potondi">
+	<Navigation />
+	
+	<Hero 
+		titleKey="pages.about.title"
+		subtitleKey="pages.about.description"
+		class="bg-gradient-to-br from-purple-50 to-pink-100"
+	/>
+
+	<section class="py-16 bg-white">
+		<div class="max-w-4xl mx-auto px-4">
+			<div class="prose prose-lg mx-auto">
+				<h2>About Me</h2>
+				<p>
+					Welcome! This is my about page where I introduce myself in more detail.
+				</p>
+				<p>
+					Here you'll find all the information about my professional background and experience.
+				</p>
+			</div>
+		</div>
+	</section>
+</Layout>

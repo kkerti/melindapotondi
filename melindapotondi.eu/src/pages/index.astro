@@ -1,0 +1,41 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navigation from '../components/Navigation.astro';
+import Hero from '../components/Hero.astro';
+import Button from '../components/Button.astro';
+---
+
+<Layout>
+	<Navigation />
+	
+	<Hero 
+		titleKey="pages.home.title"
+		subtitleKey="pages.home.description"
+		class="bg-gradient-to-br from-blue-50 to-indigo-100"
+	>
+		<div class="mt-8 space-x-4">
+			<Button 
+				textKey="ui.buttons.contact" 
+				href="/contact"
+				variant="primary"
+			/>
+			<Button 
+				textKey="ui.buttons.readMore" 
+				href="/about"
+				variant="secondary"
+			/>
+		</div>
+	</Hero>
+
+	<section class="py-16 bg-white">
+		<div class="max-w-4xl mx-auto px-4 text-center">
+			<h2 class="text-3xl font-bold text-gray-900 mb-8">
+				Üdvözlöm!
+			</h2>
+			<p class="text-lg text-gray-600 leading-relaxed">
+				Ez az én weboldalám, ahol megismerhetnek engem és a munkámat. 
+				Itt található minden fontos információ rólam és szolgáltatásaimról.
+			</p>
+		</div>
+	</section>
+</Layout>

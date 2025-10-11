@@ -1,0 +1,58 @@
+---
+import { getLangFromUrl, loadTranslations } from '../i18n';
+
+export interface Props {
+  titleKey: string;
+  subtitleKey?: string;
+  backgroundImage?: string;
+  class?: string;
+}
+
+const { titleKey, subtitleKey, backgroundImage, class: className } = Astro.props;
+
+const lang = getLangFromUrl(Astro.url);
+const translations = await loadTranslations(lang);
+
+function t(key: string): string {
+  const keys = key.split('.');
+  let value = translations;
+  
+  for (const k of keys) {
+    if (value && typeof value === 'object' && k in value) {
+      value = value[k];
+    } else {
+      return key;
+    }
+  }
+  
+  return typeof value === 'string' ? value : key;
+}
+
+const containerClasses = `relative min-h-96 flex items-center justify-center ${className || ''}`;
+const backgroundStyle = backgroundImage 
+  ? `background-image: url(${backgroundImage}); background-size: cover; background-position: center;`
+  : '';
+---
+
+<section 
+  class={containerClasses}
+  style={backgroundStyle}
+>
+  {backgroundImage && (
+    <div class="absolute inset-0 bg-black opacity-40"></div>
+  )}
+  
+  <div class="relative z-10 text-center px-4">
+    <h1 class={`text-4xl md:text-6xl font-bold mb-4 ${backgroundImage ? 'text-white' : 'text-gray-900'}`}>
+      {t(titleKey)}
+    </h1>
+    
+    {subtitleKey && (
+      <p class={`text-xl md:text-2xl ${backgroundImage ? 'text-gray-200' : 'text-gray-600'}`}>
+        {t(subtitleKey)}
+      </p>
+    )}
+    
+    <slot />
+  </div>
+</section>
