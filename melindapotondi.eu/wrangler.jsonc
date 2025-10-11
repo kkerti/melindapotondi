@@ -11,5 +11,11 @@
   },
   "observability": {
     "enabled": true
-  }
+  },
+   "routes": [
+    {
+      "pattern": "melindapotondi.eu",
+      "custom_domain": true
+    }
+  ]
 }
