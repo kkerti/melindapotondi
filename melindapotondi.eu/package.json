@@ -1,5 +1,5 @@
 {
-  "name": "",
+  "name": "melindapotondi.eu",
   "type": "module",
   "version": "0.0.1",
   "scripts": {
@@ -15,5 +15,8 @@
     "flag-icons": "^7.5.0",
     "tailwindcss": "^4.1.14",
     "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "wrangler": "^4.42.2"
   }
 }
