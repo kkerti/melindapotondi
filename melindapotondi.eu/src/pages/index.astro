@@ -4,7 +4,7 @@ import NewsletterForm from '../components/NewsletterForm.astro';
 import Events from '../components/Events.astro';
 import { Image } from 'astro:assets';
 import Contact from '../components/Contact.astro';
-const images = import.meta.glob<{ default: ImageMetadata }>('/src/assets/Lenyek*.{jpeg,jpg,png,gif}');
+import Gallery from '../components/Gallery.astro';
 ---
 
 <Layout>
@@ -16,9 +16,7 @@ const images = import.meta.glob<{ default: ImageMetadata }>('/src/assets/Lenyek*
 	</section>
 
 	<section class="container mx-auto w-full grid sm:grid-cols-2 md:grid-cols-5 justify-center gap-4 px-2 md:px-4 md:py-8">
-		{Object.entries(images).map((img: any) => 
-			<Image class="rounded-lg" src={img[0]} width={400} height={400} inferSize={true} alt="Lények / Creatures"/> 
-		)}
+		<Gallery/>
 	</section>
 
 	<section class="py-4 md:py-8 max-w-7xl mx-auto flex justify-center w-full px-4">
