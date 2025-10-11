@@ -4,35 +4,139 @@
       "home": "Home",
       "about": "About",
       "services": "Services",
-      "contact": "Contact"
+      "contact": "Contact",
+      "portfolio": "Portfolio",
+      "blog": "Blog"
     },
     "buttons": {
       "readMore": "Read More",
       "contact": "Get in Touch",
       "back": "Back",
-      "submit": "Submit"
+      "submit": "Submit",
+      "subscribe": "Subscribe",
+      "subscribing": "Subscribing...",
+      "send": "Send",
+      "cancel": "Cancel",
+      "save": "Save",
+      "edit": "Edit",
+      "delete": "Delete"
     },
     "common": {
       "loading": "Loading...",
+      "processing": "Processing...",
       "error": "An error occurred",
+      "success": "Success!",
       "welcome": "Welcome",
       "language": "Language",
-      "close": "Close"
+      "close": "Close",
+      "yes": "Yes",
+      "no": "No",
+      "required": "required",
+      "optional": "optional"
+    },
+    "form": {
+      "labels": {
+        "email": "Email Address",
+        "emailRequired": "Email Address *",
+        "firstName": "First Name",
+        "lastName": "Last Name",
+        "name": "Name",
+        "fullName": "Full Name",
+        "phone": "Phone Number",
+        "message": "Message",
+        "subject": "Subject"
+      },
+      "placeholders": {
+        "email": "your.email@example.com",
+        "firstName": "John",
+        "lastName": "Doe",
+        "name": "Full Name",
+        "phone": "+1 (555) 123-4567",
+        "message": "Type your message here...",
+        "subject": "Message subject"
+      },
+      "validation": {
+        "required": "This field is required",
+        "invalidEmail": "Invalid email address",
+        "tooShort": "Too short",
+        "tooLong": "Too long",
+        "invalidCharacters": "Invalid characters"
+      }
+    },
+    "newsletter": {
+      "title": "Newsletter Subscription",
+      "description": "Subscribe to our newsletter to be the first to know about our updates!",
+      "subscribe": "Subscribe",
+      "subscribing": "Subscribing...",
+      "messages": {
+        "success": "Successfully subscribed to the newsletter!",
+        "error": "Error: Failed to subscribe",
+        "networkError": "Network error. Please try again.",
+        "alreadySubscribed": "Already subscribed with this email address",
+        "invalidEmail": "Invalid email address format",
+        "processing": "Processing..."
+      }
+    },
+    "states": {
+      "loading": "Loading",
+      "submitting": "Submitting",
+      "processing": "Processing",
+      "saving": "Saving",
+      "sent": "Sent",
+      "failed": "Failed",
+      "completed": "Completed"
     }
   },
   "pages": {
     "home": {
       "title": "Melinda Potondi",
       "subtitle": "Home",
-      "description": "Welcome to my website!"
+      "description": "Welcome to my website!",
+      "hero": {
+        "title": "Melinda Potondi",
+        "subtitle": "Welcome to my website",
+        "description": "Discover my services and get to know me better."
+      }
     },
     "about": {
       "title": "About Me",
-      "description": "Get to know me better!"
+      "description": "Get to know me better!",
+      "hero": {
+        "title": "About Me",
+        "subtitle": "Introduction",
+        "description": "Learn more about me and my professional experience."
+      }
+    },
+    "services": {
+      "title": "Services",
+      "description": "Explore my services",
+      "hero": {
+        "title": "My Services",
+        "subtitle": "What I Offer",
+        "description": "Professional services tailored to your needs."
+      }
+    },
+    "contact": {
+      "title": "Contact",
+      "description": "Get in touch with me",
+      "hero": {
+        "title": "Contact Me",
+        "subtitle": "Let's Connect",
+        "description": "I look forward to hearing from you! Feel free to reach out with any questions."
+      }
     }
   },
   "meta": {
     "siteTitle": "Melinda Potondi",
-    "siteDescription": "Official website of Melinda Potondi"
+    "siteDescription": "Official website of Melinda Potondi",
+    "keywords": "Melinda Potondi, services, website",
+    "author": "Melinda Potondi"
+  },
+  "footer": {
+    "copyright": "© 2025 Melinda Potondi. All rights reserved.",
+    "links": {
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service"
+    }
   }
 }

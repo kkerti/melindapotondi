@@ -3,11 +3,11 @@ import Layout from '../layouts/Layout.astro';
 import Navigation from '../components/Navigation.astro';
 import Hero from '../components/Hero.astro';
 import Button from '../components/Button.astro';
+import NewsletterForm from '../components/NewsletterForm.astro';
 ---
 
 <Layout>
-	<Navigation />
-	
+
 	<Hero 
 		titleKey="pages.home.title"
 		subtitleKey="pages.home.description"
@@ -16,12 +16,12 @@ import Button from '../components/Button.astro';
 		<div class="mt-8 space-x-4">
 			<Button 
 				textKey="ui.buttons.contact" 
-				href="/contact"
+				href="/en/contact"
 				variant="primary"
 			/>
 			<Button 
 				textKey="ui.buttons.readMore" 
-				href="/about"
+				href="/en/about"
 				variant="secondary"
 			/>
 		</div>
@@ -30,12 +30,15 @@ import Button from '../components/Button.astro';
 	<section class="py-16 bg-white">
 		<div class="max-w-4xl mx-auto px-4 text-center">
 			<h2 class="text-3xl font-bold text-gray-900 mb-8">
-				Üdvözlöm!
+				Helloka!
 			</h2>
-			<p class="text-lg text-gray-600 leading-relaxed">
-				Ez az én weboldalám, ahol megismerhetnek engem és a munkámat. 
-				Itt található minden fontos információ rólam és szolgáltatásaimról.
+			<p class="text-lg text-gray-600 leading-relaxed mb-8">
+				Ez itt a szuper weboldalam, nézz körbe
 			</p>
 		</div>
+	</section>
+
+	<section class="max-w-1/3 mx-auto">
+		<NewsletterForm/>
 	</section>
 </Layout>

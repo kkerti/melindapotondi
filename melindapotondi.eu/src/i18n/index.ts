@@ -61,6 +61,16 @@ export function useTranslations(url: URL) {
   };
 }
 
+// Create a translation function for a specific URL/language context
+export async function createTranslationFunction(url: URL): Promise<(key: string) => string> {
+  const lang = getLangFromUrl(url);
+  const translations = await loadTranslations(lang);
+  
+  return (key: string): string => {
+    return t(translations, key);
+  };
+}
+
 // Generate alternate language URLs
 export function getAlternateUrls(url: URL): Record<Language, string> {
   const pathWithoutLang = url.pathname.replace(/^\/[a-z]{2}(\/|$)/, '/');

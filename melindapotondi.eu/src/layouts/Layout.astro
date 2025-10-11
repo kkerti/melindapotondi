@@ -1,6 +1,10 @@
 ---
 import "../styles/global.css";
-import { getLangFromUrl, loadTranslations, type Language } from '../i18n';
+import "/node_modules/flag-icons/css/flag-icons.min.css";
+
+import { getLangFromUrl, createTranslationFunction, type Language } from '../i18n';
+import { ClientRouter } from "astro:transitions";
+import Navigation from "../components/Navigation.astro";
 
 export interface Props {
   title?: string;
@@ -9,10 +13,10 @@ export interface Props {
 
 const { title, description } = Astro.props;
 const lang = getLangFromUrl(Astro.url);
-const translations = await loadTranslations(lang);
+const t = await createTranslationFunction(Astro.url);
 
-const pageTitle = title || translations.meta?.siteTitle || "Melinda Potondi";
-const pageDescription = description || translations.meta?.siteDescription || "";
+const pageTitle = title || t('meta.siteTitle') || "Melinda Potondi";
+const pageDescription = description || t('meta.siteDescription') || "";
 ---
 
 <!doctype html>
@@ -24,17 +28,19 @@ const pageDescription = description || translations.meta?.siteDescription || "";
 		<meta name="generator" content={Astro.generator} />
 		<meta name="description" content={pageDescription} />
 		<title>{pageTitle}</title>
+		<ClientRouter />
 	</head>
 	<body>
+		<Navigation/>
 		<slot />
 	</body>
 </html>
 
-<style>
+<style lang="postcss">
+	@reference "tailwindcss";
 	html,
 	body {
-		margin: 0;
-		width: 100%;
-		height: 100%;
+		@apply font-light;
+		@apply font-serif;
 	}
 </style>

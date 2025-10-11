@@ -1,0 +1,68 @@
+---
+// Example: Contact Form Component using centralized translation
+import { createTranslationFunction } from '../src/i18n';
+
+export interface Props {
+  class?: string;
+}
+
+const { class: className } = Astro.props;
+const t = await createTranslationFunction(Astro.url);
+---
+
+<div class={`bg-white rounded-lg shadow-md p-6 ${className || ''}`}>
+  <h3 class="text-xl font-bold text-gray-900 mb-4">
+    {t('pages.contact.title')}
+  </h3>
+  
+  <form class="space-y-4">
+    <div>
+      <label for="contact-name" class="block text-sm font-medium text-gray-700">
+        {t('ui.form.labels.fullName')}
+      </label>
+      <input
+        type="text"
+        id="contact-name"
+        name="name"
+        required
+        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+        placeholder={t('ui.form.placeholders.name')}
+      />
+    </div>
+
+    <div>
+      <label for="contact-email" class="block text-sm font-medium text-gray-700">
+        {t('ui.form.labels.emailRequired')}
+      </label>
+      <input
+        type="email"
+        id="contact-email"
+        name="email"
+        required
+        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+        placeholder={t('ui.form.placeholders.email')}
+      />
+    </div>
+
+    <div>
+      <label for="contact-message" class="block text-sm font-medium text-gray-700">
+        {t('ui.form.labels.message')}
+      </label>
+      <textarea
+        id="contact-message"
+        name="message"
+        required
+        rows="4"
+        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+        placeholder={t('ui.form.placeholders.message')}
+      ></textarea>
+    </div>
+
+    <button
+      type="submit"
+      class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+    >
+      {t('ui.buttons.send')}
+    </button>
+  </form>
+</div>

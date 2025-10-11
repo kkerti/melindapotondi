@@ -1,31 +1,13 @@
 ---
-import { getLangFromUrl, loadTranslations, getAlternateUrls, languages } from '../i18n';
+import { getLangFromUrl, createTranslationFunction, getAlternateUrls, languages } from '../i18n';
 
 const lang = getLangFromUrl(Astro.url);
-const translations = await loadTranslations(lang);
+const t = await createTranslationFunction(Astro.url);
 const alternateUrls = getAlternateUrls(Astro.url);
 
 const navigationItems = [
-  { key: 'ui.navigation.home', href: lang === 'hu' ? '/' : '/en/' },
-  { key: 'ui.navigation.about', href: lang === 'hu' ? '/about' : '/en/about' },
-  { key: 'ui.navigation.services', href: lang === 'hu' ? '/services' : '/en/services' },
   { key: 'ui.navigation.contact', href: lang === 'hu' ? '/contact' : '/en/contact' }
 ];
-
-function t(key: string): string {
-  const keys = key.split('.');
-  let value = translations;
-  
-  for (const k of keys) {
-    if (value && typeof value === 'object' && k in value) {
-      value = value[k];
-    } else {
-      return key;
-    }
-  }
-  
-  return typeof value === 'string' ? value : key;
-}
 ---
 
 <nav class="bg-white shadow-lg">
@@ -50,7 +32,7 @@ function t(key: string): string {
       </div>
 
       <!-- Language Switcher -->
-      <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-4 ">
         <span class="text-sm text-gray-600">{t('ui.common.language')}:</span>
         {Object.entries(languages).map(([code, name]) => (
           <a
@@ -61,24 +43,10 @@ function t(key: string): string {
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
             }`}
           >
+            <span class={`fi fi-${code === "hu" ? "hu" : "eu"}`}></span>
             {code.toUpperCase()}
           </a>
         ))}
-      </div>
-
-      <!-- Mobile menu button -->
-      <div class="md:hidden flex items-center">
-        <button
-          type="button"
-          class="mobile-menu-button inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
-          aria-controls="mobile-menu"
-          aria-expanded="false"
-        >
-          <span class="sr-only">Open main menu</span>
-          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
       </div>
     </div>
 

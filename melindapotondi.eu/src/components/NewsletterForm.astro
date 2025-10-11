@@ -1,0 +1,99 @@
+---
+import { getLangFromUrl, createTranslationFunction } from '../i18n';
+
+export interface Props {
+  class?: string;
+}
+
+const { class: className } = Astro.props;
+
+const lang = getLangFromUrl(Astro.url);
+const t = await createTranslationFunction(Astro.url);
+
+---
+
+<div class={`bg-white rounded-lg shadow-md p-6 ${className || ''}`}>
+  <h3 class="text-xl font-bold text-gray-900 mb-4">
+    {t('ui.newsletter.title')}
+  </h3>
+  
+  <form id="newsletter-form" class="space-y-4">
+    <div>
+      <label for="newsletter-email" class="block text-sm font-medium text-gray-700">
+        {t('ui.form.labels.emailRequired')}
+      </label>
+      <input
+        type="email"
+        id="newsletter-email"
+        name="email"
+        required
+        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+        placeholder={t('ui.form.placeholders.email')}
+      />
+    </div>
+
+    <input
+        type="hidden"
+        id="newsletter-lang"
+        name="lang"
+        required
+        value={lang}
+    />
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label for="newsletter-firstName" class="block text-sm font-medium text-gray-700">
+          {t('ui.form.labels.firstName')}
+        </label>
+        <input
+          type="text"
+          id="newsletter-firstName"
+          name="firstName"
+          class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          placeholder={t('ui.form.placeholders.firstName')}
+        />
+      </div>
+
+      <div>
+        <label for="newsletter-lastName" class="block text-sm font-medium text-gray-700">
+          {t('ui.form.labels.lastName')}
+        </label>
+        <input
+          type="text"
+          id="newsletter-lastName"
+          name="lastName"
+          class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          placeholder={t('ui.form.placeholders.lastName')}
+        />
+      </div>
+    </div>
+
+    <button
+      type="submit"
+      class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {t('ui.newsletter.subscribe')}
+    </button>
+  </form>
+
+  <div id="newsletter-result" class="mt-4 hidden">
+    <!-- Results will be shown here -->
+  </div>
+</div>
+
+<script>
+import { actions } from "astro:actions";
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('newsletter-form') as HTMLFormElement;
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const {data, error} = await actions.subscribeToNewsletter(formData);
+            console.log(data, error)
+        
+        });
+    });
+</script>

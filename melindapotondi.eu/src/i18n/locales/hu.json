@@ -4,35 +4,139 @@
       "home": "Főoldal",
       "about": "Rólam",
       "services": "Szolgáltatások",
-      "contact": "Kapcsolat"
+      "contact": "Kapcsolat",
+      "portfolio": "Portfólió",
+      "blog": "Blog"
     },
     "buttons": {
       "readMore": "Tovább olvas",
       "contact": "Kapcsolatfelvétel",
       "back": "Vissza",
-      "submit": "Küldés"
+      "submit": "Küldés",
+      "subscribe": "Feliratkozás",
+      "subscribing": "Feliratkozás...",
+      "send": "Küldés",
+      "cancel": "Mégse",
+      "save": "Mentés",
+      "edit": "Szerkesztés",
+      "delete": "Törlés"
     },
     "common": {
       "loading": "Betöltés...",
+      "processing": "Feldolgozás...",
       "error": "Hiba történt",
+      "success": "Sikeres!",
       "welcome": "Üdvözlöm",
       "language": "Nyelv",
-      "close": "Bezárás"
+      "close": "Bezárás",
+      "yes": "Igen",
+      "no": "Nem",
+      "required": "kötelező",
+      "optional": "opcionális"
+    },
+    "form": {
+      "labels": {
+        "email": "Email cím",
+        "emailRequired": "Email cím *",
+        "firstName": "Keresztnév",
+        "lastName": "Vezetéknév",
+        "name": "Név",
+        "fullName": "Teljes név",
+        "phone": "Telefonszám",
+        "message": "Üzenet",
+        "subject": "Tárgy"
+      },
+      "placeholders": {
+        "email": "pelda@email.hu",
+        "firstName": "János",
+        "lastName": "Nagy",
+        "name": "Teljes név",
+        "phone": "+36 30 123 4567",
+        "message": "Írja ide üzenetét...",
+        "subject": "Üzenet tárgya"
+      },
+      "validation": {
+        "required": "Ez a mező kötelező",
+        "invalidEmail": "Érvénytelen email cím",
+        "tooShort": "Túl rövid",
+        "tooLong": "Túl hosszú",
+        "invalidCharacters": "Érvénytelen karakterek"
+      }
+    },
+    "newsletter": {
+      "title": "Hírlevél feliratkozás",
+      "description": "Iratkozzon fel hírlevelünkre, hogy elsőként értesüljön újdonságainkról!",
+      "subscribe": "Feliratkozás",
+      "subscribing": "Feliratkozás...",
+      "messages": {
+        "success": "Sikeresen feliratkozott a hírlevélre!",
+        "error": "Hiba: Nem sikerült a feliratkozás",
+        "networkError": "Hálózati hiba. Kérjük, próbálja újra.",
+        "alreadySubscribed": "Ezzel az email címmel már feliratkozott",
+        "invalidEmail": "Érvénytelen email cím formátum",
+        "processing": "Feldolgozás..."
+      }
+    },
+    "states": {
+      "loading": "Betöltés",
+      "submitting": "Küldés",
+      "processing": "Feldolgozás",
+      "saving": "Mentés",
+      "sent": "Elküldve",
+      "failed": "Sikertelen",
+      "completed": "Befejezve"
     }
   },
   "pages": {
     "home": {
       "title": "Melinda Potondi",
       "subtitle": "Főoldal",
-      "description": "Üdvözlöm a weboldalamon!"
+      "description": "Üdvözlöm a weboldalamon!",
+      "hero": {
+        "title": "Melinda Potondi",
+        "subtitle": "Üdvözlöm a weboldalamon",
+        "description": "Fedezze fel szolgáltatásaimat és ismerjen meg engem jobban."
+      }
     },
     "about": {
       "title": "Rólam",
-      "description": "Ismerj meg engem jobban!"
+      "description": "Ismerj meg engem jobban!",
+      "hero": {
+        "title": "Rólam",
+        "subtitle": "Bemutatkozás",
+        "description": "Tudjon meg többet rólam és szakmai tapasztalataimról."
+      }
+    },
+    "services": {
+      "title": "Szolgáltatások",
+      "description": "Tekintse meg szolgáltatásaimat",
+      "hero": {
+        "title": "Szolgáltatásaim",
+        "subtitle": "Mit kínálok",
+        "description": "Professzionális szolgáltatások az Ön igényei szerint."
+      }
+    },
+    "contact": {
+      "title": "Kapcsolat",
+      "description": "Vegye fel velem a kapcsolatot",
+      "hero": {
+        "title": "Kapcsolatfelvétel",
+        "subtitle": "Kereszen meg",
+        "description": "Várom megkeresését! Írjon bátran bármilyen kérdéssel."
+      }
     }
   },
   "meta": {
     "siteTitle": "Melinda Potondi",
-    "siteDescription": "Melinda Potondi hivatalos weboldala"
+    "siteDescription": "Melinda Potondi hivatalos weboldala",
+    "keywords": "Melinda Potondi, szolgáltatások, weboldal",
+    "author": "Melinda Potondi"
+  },
+  "footer": {
+    "copyright": "© 2025 Melinda Potondi. Minden jog fenntartva.",
+    "links": {
+      "privacy": "Adatvédelmi szabályzat",
+      "terms": "Felhasználási feltételek"
+    }
   }
 }
