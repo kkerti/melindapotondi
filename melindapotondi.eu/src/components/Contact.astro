@@ -31,8 +31,8 @@ const t = await createTranslationFunction(Astro.url);
         }
     }
 
-    // Add event listener when DOM is loaded
-    document.addEventListener('DOMContentLoaded', function() {
+    // Add event listener when astro navigation changes
+    document.addEventListener('astro:page-load', function() {
         const button = document.getElementById('contact-btn');
         if (button) {
             button.addEventListener('click', showEmail);

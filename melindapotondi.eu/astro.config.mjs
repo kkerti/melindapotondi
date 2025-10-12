@@ -1,5 +1,5 @@
 // @ts-check
-import { defineConfig, passthroughImageService } from 'astro/config';
+import { defineConfig, envField, passthroughImageService } from 'astro/config';
 import tailwindcss from '@tailwindcss/vite';
 
 import cloudflare from "@astrojs/cloudflare";
@@ -9,7 +9,6 @@ export default defineConfig({
   vite: {
     plugins: [tailwindcss()],
   },
-
   i18n: {
     locales: ["en", "hu"],
     defaultLocale: "hu",
@@ -17,9 +16,15 @@ export default defineConfig({
         prefixDefaultLocale: false
     }
   },
-  image: {
-    service: passthroughImageService()
+  env: {
+    schema: {
+      BREVO_API_KEY: envField.string({context: 'server', access: 'secret'}),
+      BREVO_API_URL: envField.string({context: 'server', access: 'public'})
+    }
   },
+  // image: {
+  //   service: passthroughImageService()
+  // },
   adapter: cloudflare({
     imageService: 'compile'
   })

@@ -1,4 +1,5 @@
 import { ActionError, defineAction } from 'astro:actions';
+import { BREVO_API_KEY, BREVO_API_URL } from 'astro:env/server';
 import { z } from 'astro:schema';
 
 const subscribeToNewsletter = defineAction({
@@ -35,11 +36,10 @@ const subscribeToNewsletter = defineAction({
         .transform((name) => name.trim())
         .optional(),
     }),
-    handler: async ({ email, firstName, lastName, lang, entry }) => {
-        const { BREVO_API_KEY, BREVO_API_URL } = import.meta.env;
+    handler: async ({ email, firstName, lastName, lang, entry }) => { 
 
         if (!BREVO_API_KEY) {
-        throw new Error('Brevo API key is not configured');
+            throw new Error('Brevo API key is not configured');
         }
 
         // Prepare Brevo request
@@ -67,7 +67,6 @@ const subscribeToNewsletter = defineAction({
             },
             body: JSON.stringify(brevoRequest)
         });
-
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
