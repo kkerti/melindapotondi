@@ -22,9 +22,6 @@ export default defineConfig({
       BREVO_API_URL: envField.string({context: 'server', access: 'public'})
     }
   },
-  // image: {
-  //   service: passthroughImageService()
-  // },
   adapter: cloudflare({
     imageService: 'compile'
   })
