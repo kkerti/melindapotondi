@@ -83,7 +83,7 @@ const t = await createTranslationFunction(Astro.url);
 import { isInputError } from "astro:actions";
 import { actions } from "astro:actions";
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('astro:page-load', function() {
     const form = document.getElementById('newsletter-form') as HTMLFormElement;
     const formResult = document.getElementById('newsletter-result') as HTMLElement;
     const submitButton = form?.querySelector('button[type="submit"]') as HTMLButtonElement;
