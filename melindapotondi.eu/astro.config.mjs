@@ -19,7 +19,8 @@ export default defineConfig({
   env: {
     schema: {
       BREVO_API_KEY: envField.string({context: 'server', access: 'secret'}),
-      BREVO_API_URL: envField.string({context: 'server', access: 'public'})
+      BREVO_API_URL: envField.string({context: 'server', access: 'public'}),
+      VENDURE_SHOP_API_URL: envField.string({context: 'client', access: 'public'})
     }
   },
   adapter: cloudflare({

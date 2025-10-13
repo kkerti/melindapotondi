@@ -1,0 +1,23 @@
+---
+const { itemId } = Astro.props;
+---
+<add-to-cart data-product-variant-id={itemId}>
+    <button id="add-to-cart" class="cursor-pointer px-4 py-2 rounded-4xl font-semibold bg-emerald-500">Add to cart {itemId}</button>
+</add-to-cart>
+
+
+<script>
+    import { addToCart } from "./cart";
+
+    class AddToCart extends HTMLElement {
+        connectedCallback(){
+            const productVariantId = this.dataset.productVariantId;
+            if(!productVariantId) return
+            const button = this.querySelector('button');
+            button?.addEventListener('click', () => {
+                addToCart(productVariantId)
+            })
+        }
+    }
+    customElements.define('add-to-cart', AddToCart);
+</script>

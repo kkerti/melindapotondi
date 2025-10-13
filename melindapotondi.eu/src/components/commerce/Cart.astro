@@ -1,0 +1,26 @@
+---
+---
+<div id="items-in-cart"></div>
+<script>
+    import { $cart } from "./cart";
+     function getTotalQuantity(cart: any) {
+        if (!cart?.lines?.length) return 0;
+        
+        return cart.lines.reduce((total: number, line: any) => {
+            return total + (line.quantity || 0);
+        }, 0);
+    }
+    const itemsInCart = document.getElementById("items-in-cart")
+    $cart.subscribe(v => {
+        if(v?.lines?.length > 0){
+            const totalQuantity = getTotalQuantity(v);
+            if (itemsInCart) {
+                itemsInCart.innerHTML = `${totalQuantity}`;
+            } 
+        } else {
+            if (itemsInCart) {
+                itemsInCart.innerHTML = '0';
+            }
+        }
+    })
+</script>

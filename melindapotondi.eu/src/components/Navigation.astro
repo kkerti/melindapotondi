@@ -1,6 +1,7 @@
 ---
 import { getLangFromUrl, createTranslationFunction, getAlternateUrls, languages } from '../i18n';
 import MPLogo from '../assets/MPLogo.svg';
+import Cart from './commerce/Cart.astro';
 
 const lang = getLangFromUrl(Astro.url);
 const t = await createTranslationFunction(Astro.url);
@@ -30,6 +31,10 @@ const navigationItems = [
             {t(item.key)}
           </a>
         ))}
+      </div>
+
+      <div>
+        <Cart/>
       </div>
 
       <!-- Language Switcher -->
