@@ -1,7 +1,59 @@
 import { VENDURE_SHOP_API_URL } from "astro:env/client";
 import { atom } from "nanostores";
+import type { ActiveOrderResult, Order } from "../../generated/graphql";
 
-export const $cart = atom()
+export const $cart = atom<Order|null>(null)
+
+export async function getActiveOrder() {
+    const response = await fetch(VENDURE_SHOP_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
+        body: JSON.stringify({
+            query: `
+                query GetActiveOrder {
+                    activeOrder {
+                        id
+                        code
+                        total
+                        totalWithTax
+                        state
+                        lines {
+                            id
+                            quantity
+                            productVariant {
+                                id
+                                sku
+                                name
+                            }
+                            unitPrice
+                            unitPriceWithTax
+                            linePrice
+                            linePriceWithTax
+                        }
+                    }
+                }
+            `,
+        }),
+    });
+
+    const result = await response.json();
+    if (result.data?.activeOrder) {
+        $cart.set(result.data.activeOrder);
+    }
+    return result.data?.activeOrder || null;
+}
+
+export async function initializeCart() {
+    try {
+        const activeOrder = await getActiveOrder();
+        return activeOrder;
+    } catch (error) {
+        console.error('Failed to initialize cart:', error);
+        $cart.set(null);
+        return null;
+    }
+}
 
 export async function addToCart(productVariantId: string | number, quantity: number = 1){
     const response = await fetch(VENDURE_SHOP_API_URL, {
@@ -107,4 +159,10 @@ export async function removeCartLine(lineId: string) {
     return result;
 }
 
-
+export function formatPrice(price: number): string {
+    return new Intl.NumberFormat('hu-HU', {
+        style: 'currency',
+        currency: 'HUF',
+        minimumFractionDigits: 0,
+    }).format(price / 100);
+}

@@ -1,26 +1,338 @@
 ---
+import { ShoppingCart } from '@lucide/astro';
+import { $cart } from './cart';
 ---
-<div id="items-in-cart"></div>
+<!-- Cart Icon Button -->
+<button 
+  id="cart-open-btn"
+  class="flex relative p-2 text-gray-600 hover:text-gray-900 transition-colors"
+  aria-label="Open shopping cart"
+>
+  <ShoppingCart size={24} />
+  <span 
+    id="items-in-cart"
+    class="absolute -top-0 -right-0 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[1.25rem]"
+  >
+    0
+  </span>
+</button>
+
 <script>
-    import { $cart } from "./cart";
-     function getTotalQuantity(cart: any) {
+    import type { OrderLine } from "../../generated/graphql";
+    import { $cart, formatPrice, removeCartLine } from "./cart";
+    
+    function getTotalQuantity(cart: any) {
         if (!cart?.lines?.length) return 0;
         
         return cart.lines.reduce((total: number, line: any) => {
             return total + (line.quantity || 0);
         }, 0);
     }
-    const itemsInCart = document.getElementById("items-in-cart")
-    $cart.subscribe(v => {
-        if(v?.lines?.length > 0){
-            const totalQuantity = getTotalQuantity(v);
-            if (itemsInCart) {
-                itemsInCart.innerHTML = `${totalQuantity}`;
-            } 
-        } else {
-            if (itemsInCart) {
-                itemsInCart.innerHTML = '0';
+
+    
+    function renderCartItems(cart: any) {
+        const itemsList = document.getElementById("cart-items-list");
+        const emptyCart = document.getElementById("empty-cart");
+        const subtotalElement = document.getElementById("cart-subtotal");
+        
+        if (!cart?.lines?.length) {
+            if (itemsList) itemsList.innerHTML = '';
+            if (emptyCart) emptyCart.classList.remove('hidden');
+            if (subtotalElement) subtotalElement.textContent = '0 Ft';
+            return;
+        }
+        
+        if (emptyCart) emptyCart.classList.add('hidden');
+        
+        if (itemsList) {
+            itemsList.innerHTML = cart.lines.map((line: any) => `
+                <li class="flex py-6">
+                    <div class="size-24 shrink-0 overflow-hidden rounded-md border border-gray-200">
+                        <img 
+                            src="/android-chrome-192x192.png" 
+                            alt="${line.productVariant.name}"
+                            class="size-full object-cover" 
+                        />
+                    </div>
+                    <div class="ml-4 flex flex-1 flex-col">
+                        <div>
+                            <div class="flex justify-between text-base font-medium text-gray-900">
+                                <h3>
+                                    <a href="#">${line.productVariant.name}</a>
+                                </h3>
+                                <p class="ml-4">${formatPrice(line.linePriceWithTax)}</p>
+                            </div>
+                            <p class="mt-1 text-sm text-gray-500">SKU: ${line.productVariant.sku}</p>
+                        </div>
+                        <div class="flex flex-1 items-end justify-between text-sm">
+                            <p class="text-gray-500">Qty ${line.quantity}</p>
+                            <div class="flex">
+                                <button 
+                                    type="button" 
+                                    class="font-medium text-indigo-600 hover:text-indigo-500 remove-item-btn"
+                                    data-line-id="${line.id}"
+                                >
+                                    Remove
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+            `).join('');
+        }
+        
+        // Update subtotal
+        if (subtotalElement && cart.totalWithTax) {
+            subtotalElement.textContent = formatPrice(cart.totalWithTax);
+        }
+    }
+    
+    const itemsInCart = document.getElementById("items-in-cart");
+    
+    let cartItems: OrderLine[] = [];
+    $cart.subscribe(cart => {
+        if(!cart || !itemsInCart) return;
+        const totalQuantity = getTotalQuantity(cart);
+        itemsInCart.innerHTML = `${totalQuantity}`;
+        cartItems = cart.lines;
+        renderCartItems(cart);
+    });
+    
+    // Handle remove item clicks
+    document.addEventListener('click', async (e) => {
+        const target = e.target as HTMLElement;
+        if (target.classList.contains('remove-item-btn')) {
+            e.preventDefault();
+            const lineId = target.getAttribute('data-line-id');
+            if (lineId) {
+                try {
+                    await removeCartLine(lineId);
+                } catch (error) {
+                    console.error('Failed to remove item from cart:', error);
+                }
             }
         }
-    })
+    });
+
+    // Handle cart modal opening/closing
+    const cartOpenBtn = document.getElementById('cart-open-btn');
+    const drawer = document.getElementById('drawer') as HTMLDialogElement;
+    const closeButton = document.getElementById('cart-close-btn');
+
+    function lockScroll() {
+        const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+        document.body.style.overflow = 'hidden';
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+    
+    function unlockScroll() {
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+    }
+    
+    if (cartOpenBtn && drawer) {
+        cartOpenBtn.addEventListener('click', () => {
+            drawer.showModal();
+            // Force a reflow to ensure everything starts in the right position
+            drawer.offsetHeight;
+            // Animate in everything together
+            requestAnimationFrame(() => {
+                drawer.classList.add('opened');
+            });
+            lockScroll();
+        });
+    }
+    
+    function closeDrawer() {
+        if (drawer) {
+            drawer.classList.add('closing');
+            drawer.classList.remove('opened');
+            setTimeout(() => {
+                drawer.close();
+                drawer.classList.remove('closing');
+                unlockScroll();
+            }, 300); // Match the transition duration
+        }
+    }
+
+    if(closeButton){
+        closeButton.addEventListener('click', closeDrawer);
+    }
+
+    // Listen for dialog close events (including closedby="any" triggers)
+    if (drawer) {
+        drawer.addEventListener('close', (e) => {
+            // Only unlock scroll if the drawer wasn't closed by our closeDrawer function
+            if (!drawer.classList.contains('closing')) {
+                unlockScroll();
+            }
+        });
+        
+        // Handle backdrop clicks for slide-out animation
+        drawer.addEventListener('click', (e) => {
+            if (e.target === drawer) {
+                e.preventDefault();
+                closeDrawer();
+            }
+        });
+
+        // Prevent the default backdrop close behavior and use our animation
+        drawer.addEventListener('cancel', (e) => {
+            e.preventDefault();
+            closeDrawer();
+        });
+    }
+    
 </script>
+
+<style>
+    #drawer {
+        position: fixed;
+        right: 0;
+        top: 0;
+        width: 100%;
+        max-width: 28rem; /* 448px - equivalent to max-w-md */
+        height: 100vh;
+        margin: 0;
+        padding: 0;
+        border: none;
+        background: transparent;
+        inset: 0 0 0 auto; /* This ensures it sticks to the right */
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        overflow: hidden; /* Prevent dialog-level scrolling */
+    }
+
+    #drawer::backdrop {
+        background-image: linear-gradient(
+            45deg,
+            magenta,
+            rebeccapurple,
+            dodgerblue,
+            green
+        );
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out;
+    }
+
+    /* Animate the cart panel */
+    #cart-panel {
+        transform: translateX(100%);
+        transition: transform 0.3s ease-in-out;
+    }
+
+    /* Opening states */
+    #drawer.opened {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    #drawer.opened::backdrop {
+        opacity: 0.75;
+    }
+
+    #drawer.opened #cart-panel {
+        transform: translateX(0);
+    }
+
+    /* Closing state */
+    #drawer.closing {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    #drawer.closing::backdrop {
+        opacity: 0;
+    }
+
+    #drawer.closing #cart-panel {
+        transform: translateX(100%);
+    }
+
+    /* Ensure clean scrolling within the cart */
+    #cart-panel {
+        overflow: hidden; /* Prevent outer scrolling */
+    }
+
+    #cart-panel > div {
+        max-height: 100vh; /* Ensure it doesn't exceed viewport */
+        overflow: hidden; /* Let inner content handle scrolling */
+    }
+
+    /* Style the scrollbar for the cart items area */
+    #cart-panel .overflow-y-auto {
+        scrollbar-width: thin;
+        scrollbar-color: #d1d5db #f9fafb;
+    }
+
+    #cart-panel .overflow-y-auto::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    #cart-panel .overflow-y-auto::-webkit-scrollbar-track {
+        background: #f9fafb;
+    }
+
+    #cart-panel .overflow-y-auto::-webkit-scrollbar-thumb {
+        background-color: #d1d5db;
+        border-radius: 3px;
+    }
+
+    #cart-panel .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+        background-color: #9ca3af;
+    }
+
+</style>
+
+<dialog id="drawer" aria-labelledby="drawer-title">
+    <div id="cart-panel" class="flex h-full my-auto w-full max-w-md">
+        <div class="flex flex-col overflow-y-auto bg-white shadow-xl w-full">
+            <div class="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
+                <div class="flex items-start justify-between">
+                <h2 id="drawer-title" class="text-lg font-medium text-gray-900">Shopping cart</h2>
+                <div class="ml-3 flex h-7 items-center">
+                    <button type="button" id="cart-close-btn" class="relative -m-2 p-2 text-gray-400 hover:text-gray-500">
+                    <span class="absolute -inset-0.5"></span>
+                    <span class="sr-only">Close panel</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" data-slot="icon" aria-hidden="true" class="size-6">
+                        <path d="M6 18 18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    </button>
+                </div>
+                </div>
+
+                <div class="mt-8">
+                <div class="flow-root">
+                    <ul id="cart-items-list" role="list" class="-my-6 divide-y divide-gray-200">
+                    <!-- Cart items will be populated dynamically -->
+                    </ul>
+                    <div id="empty-cart" class="text-center py-8 text-gray-500 hidden">
+                    Your cart is empty
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-200 px-4 py-6 sm:px-6">
+                <div class="flex justify-between text-base font-medium text-gray-900">
+                <p>Subtotal</p>
+                <p id="cart-subtotal">0 Ft</p>
+                </div>
+                <p class="mt-0.5 text-sm text-gray-500">Shipping and taxes calculated at checkout.</p>
+                <div class="mt-6">
+                <a href="/checkout" class="flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-6 py-3 text-base font-medium text-white shadow-xs hover:bg-indigo-700">Checkout</a>
+                </div>
+                <div class="mt-6 flex justify-center text-center text-sm text-gray-500">
+                <p>
+                    or
+                    <button type="button" class="font-medium text-indigo-600 hover:text-indigo-500">
+                    Continue Shopping
+                    <span aria-hidden="true"> &rarr;</span>
+                    </button>
+                </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</dialog>
