@@ -16,6 +16,7 @@ export async function searchProducts(term: string){
                         }) {
                             items {
                                 productName
+                                slug
                                 productVariantId
                                 productAsset {
                                     preview
@@ -43,6 +44,60 @@ export async function searchProducts(term: string){
     const result = await response.json();
     if(result.data?.search?.items){
         return result.data.search.items 
+    }
+    return result
+}
+
+export async function getProductDetail(slug: string){
+    const response = await fetch(VENDURE_SHOP_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
+        body: JSON.stringify({
+            query: `
+                query GetProductDetail($slug: String!) {
+                    product(slug: $slug) {
+                        id
+                        name
+                        description
+                        featuredAsset {
+                            id
+                            preview
+                        }
+                        assets {
+                            id
+                            preview
+                        }
+                        variants {
+                            id
+                            name
+                            sku
+                            stockLevel
+                            currencyCode
+                            price
+                            priceWithTax
+                            featuredAsset {
+                                id
+                                preview
+                            }
+                            assets {
+                                id
+                                preview
+                            }
+                        }
+                    }
+                }
+            `,
+            variables: {
+                slug,
+            },
+        }),
+    });
+
+    const result = await response.json();
+    console.log(result.data);
+    if(result.data?.product){
+        return result.data.product
     }
     return result
 }

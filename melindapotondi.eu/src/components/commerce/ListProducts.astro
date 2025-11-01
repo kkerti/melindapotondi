@@ -8,7 +8,7 @@ const products = await searchProducts("camera");
 <div class="py-8 container max-w-7xl mx-auto grid grid-cols-3 gap-4">
     {products.map((item) =>
         <div class="border-2 border-slate-300 rounded-2xl p-4">
-            <div>{item.productName}</div>
+            <a href={`shop/${item.slug}`}>{item.productName}</a>
             <img class="max-h-80" src={item.productAsset.preview} alt={item.productName}/>
             <AddToCart itemId={item.productVariantId}/>
         </div>

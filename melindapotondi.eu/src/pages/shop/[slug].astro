@@ -1,0 +1,14 @@
+---
+export const prerender = false; // Not needed in 'server' mode
+import AddToCart from "@components/commerce/AddToCart.astro";
+import {getProductDetail} from "@components/commerce/products"
+import Layout from "@layouts/Layout.astro";
+const { slug } = Astro.params;
+if(!slug) return
+const product = await getProductDetail(slug)
+---
+<Layout>
+{product.name}
+<AddToCart itemId={product.variants[0].id}/>
+
+</Layout>

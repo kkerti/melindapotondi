@@ -20,9 +20,18 @@
     "src/plugins/**/ui/*",
     "src/plugins/**/dashboard/*",
     "admin-ui",
-    "vite.*.*ts"
-  ],
+    "vite.*.*ts",
+    "src/plugins/**/dashboard/*",
+        "vite.*.*ts"
+    ],
   "ts-node": {
     "files": true
-  }
+  },
+  "references": [
+        {
+            "path": "./tsconfig.dashboard.json"
+        }
+    ]
 }
+
+ 
