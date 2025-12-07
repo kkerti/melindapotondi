@@ -4,11 +4,14 @@ import tailwindcss from '@tailwindcss/vite';
 
 import cloudflare from "@astrojs/cloudflare";
 
+import svelte from '@astrojs/svelte';
+
 // https://astro.build/config
 export default defineConfig({
   vite: {
     plugins: [tailwindcss()],
   },
+
   i18n: {
     locales: ["en", "hu"],
     defaultLocale: "hu",
@@ -16,6 +19,7 @@ export default defineConfig({
         prefixDefaultLocale: false
     }
   },
+
   env: {
     schema: {
       BREVO_API_KEY: envField.string({context: 'server', access: 'secret'}),
@@ -23,7 +27,10 @@ export default defineConfig({
       VENDURE_SHOP_API_URL: envField.string({context: 'client', access: 'public'})
     }
   },
+
   adapter: cloudflare({
     imageService: 'compile'
-  })
+  }),
+
+  integrations: [svelte()]
 });

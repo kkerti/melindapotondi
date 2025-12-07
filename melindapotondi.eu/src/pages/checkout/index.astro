@@ -1,32 +1,37 @@
 ---
 import Layout from '@layouts/Layout.astro';
-import { createForm } from '@lib/forms';
-import z from 'zod';
-const schema = z.object({
-  name: z.string().optional(),
-  email: z.string().email(),
-  age: z.number()
-})
-const { data, isValid, fields, errors } = await createForm(schema, Astro.request)
-if(isValid) {
-  // do something with data
-  // await db.users.create({ name: data.name, email: data.email, age: data.age })
-}
+import { createTranslationFunction } from '../../i18n';
+import ContactForm from '@components/forms/ContactForm.svelte';
+import AddressForm from '@components/forms/AddressForm.svelte';
+import { VENDURE_SHOP_API_URL } from 'astro:env/client';
+
+const t = await createTranslationFunction(Astro.url);
+
+const contactLabels = {
+  firstName: t("ui.form.labels.firstName"),
+  lastName: t("ui.form.labels.lastName"),
+  emailAddress: t("ui.form.labels.emailAddress"),
+  phoneNumber: t("ui.form.labels.phoneNumber"),
+};
+
+const addressLabels = {
+  streetLine1: t("ui.form.labels.streetLine1"),
+  streetLine2: t("ui.form.labels.streetLine2"),
+  city: t("ui.form.labels.city"),
+  province: t("ui.form.labels.province"),
+  postalCode: t("ui.form.labels.postalCode"),
+  country: t("ui.form.labels.country"),
+};
 ---
+
 <Layout>
-  <form method="post">
-    <label>Name</label>
-    <input {...fields.name }>
-    {errors.name && <span>{errors.name.message}</span>}
+  <h2 class="text-xl font-bold p-3">Contact Information</h2>
+  <div class="p-3 max-w-64">
+    <ContactForm client:load labels={contactLabels} endpoint={VENDURE_SHOP_API_URL} />
+  </div>
 
-    <label>Email</label>
-    <input {...fields.email }>
-    {errors.email && <span>{errors.email.message}</span>}
-
-    <label>Age</label>
-    <input {...fields.age }>
-    {errors.age && <span>{errors.age.message}</span>}
-
-    <button type="submit">Save</button>
-  </form>
+  <h2 class="text-xl font-bold p-3">Shipping Address</h2>
+  <div class="p-3 max-w-64">
+    <AddressForm client:load labels={addressLabels} endpoint={VENDURE_SHOP_API_URL} />
+  </div>
 </Layout>

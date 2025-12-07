@@ -46,24 +46,26 @@
     },
     "form": {
       "labels": {
-        "email": "Email cím",
+        "emailAddress": "Email cím",
         "emailRequired": "Email cím *",
         "firstName": "Keresztnév",
         "lastName": "Vezetéknév",
-        "name": "Név",
-        "fullName": "Teljes név",
-        "phone": "Telefonszám",
-        "message": "Üzenet",
-        "subject": "Tárgy"
+        "phoneNumber": "Telefonszám",
+        "streetLine1": "Utca, házszám",
+        "streetLine2": "Blokk, épület",
+        "city": "Város",
+        "postalCode": "Irányítószám",
+        "country": "Ország",
+        "province": "Vármegye"
       },
       "placeholders": {
-        "email": "pelda@email.hu",
+        "emailAddress": "pelda@email.hu",
         "firstName": "János",
         "lastName": "Nagy",
-        "name": "Teljes név",
-        "phone": "+36 30 123 4567",
-        "message": "Írja ide üzenetét...",
-        "subject": "Üzenet tárgya"
+        "phoneNumber": "+36 30 123 4567",
+        "streetLine1": "Példa utca 1", 
+        "streetLine2": "",
+        "postalCode": "0000"
       },
       "validation": {
         "required": "Ez a mező kötelező",

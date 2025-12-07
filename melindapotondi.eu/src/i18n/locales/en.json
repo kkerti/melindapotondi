@@ -41,24 +41,26 @@
     },
     "form": {
       "labels": {
-        "email": "Email Address",
-        "emailRequired": "Email Address *",
+        "emailAddress": "Email Address",
         "firstName": "First Name",
         "lastName": "Last Name",
-        "name": "Name",
-        "fullName": "Full Name",
-        "phone": "Phone Number",
-        "message": "Message",
-        "subject": "Subject"
+        "phoneNumber": "Phone Number",
+        "streetLine1": "Street address",
+        "streetLine2": "Apt., suite, house number",
+        "city": "City",
+        "postalCode": "Postal code",
+        "country": "Country"
       },
       "placeholders": {
-        "email": "your.email@example.com",
+        "emailAddress": "your.email@example.com",
         "firstName": "John",
         "lastName": "Doe",
-        "name": "Full Name",
-        "phone": "+1 (555) 123-4567",
-        "message": "Type your message here...",
-        "subject": "Message subject"
+        "phoneNumber": "+1 (555) 123-4567",
+        "streetLine1": "Your street 1",
+        "streetLine2": "Building 2",
+        "city": "Budapest",
+        "postalCode": "12345",
+        "country": "Anywhere"
       },
       "validation": {
         "required": "This field is required",

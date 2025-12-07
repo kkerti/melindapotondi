@@ -9,7 +9,8 @@
     "build": "tsc",
     "start:server": "node ./dist/index.js",
     "start:worker": "node ./dist/index-worker.js",
-    "start": "concurrently npm:start:*"
+    "start": "concurrently npm:start:*",
+    "codegen": "graphql-codegen --config codegen.ts"
   },
   "dependencies": {
     "@vendure/admin-ui-plugin": "3.4.4",
@@ -22,6 +23,8 @@
     "pg": "8.16.3"
   },
   "devDependencies": {
+    "@graphql-codegen/cli": "6.1.0",
+    "@graphql-codegen/typescript": "5.0.6",
     "@vendure/cli": "3.4.4",
     "concurrently": "9.2.1",
     "typescript": "5.8.2"
