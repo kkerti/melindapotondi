@@ -3,6 +3,10 @@ import Layout from '@layouts/Layout.astro';
 import { createTranslationFunction } from '../../i18n';
 import ContactForm from '@components/forms/ContactForm.svelte';
 import AddressForm from '@components/forms/AddressForm.svelte';
+import FoxpostSelector from '@components/forms/FoxpostSelector.svelte';
+import ShippingSelector from '@components/forms/ShippingSelector.svelte';
+import OrderSummary from '@components/commerce/OrderSummary.svelte';
+
 import { VENDURE_SHOP_API_URL } from 'astro:env/client';
 
 const t = await createTranslationFunction(Astro.url);
@@ -25,13 +29,67 @@ const addressLabels = {
 ---
 
 <Layout>
+  <div class="p-3">
+    <button 
+      id="fill-dummy-data"
+      class="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-2 text-sm hover:bg-yellow-200"
+    >
+      🧪 Fill with test data
+    </button>
+  </div>
+
+  <h2 class="text-xl font-bold p-3">Order Summary</h2>
+  <div class="p-3 max-w-80">
+    <OrderSummary client:load />
+  </div>
+
   <h2 class="text-xl font-bold p-3">Contact Information</h2>
-  <div class="p-3 max-w-64">
+  <div class="p-3 max-w-80">
     <ContactForm client:load labels={contactLabels} endpoint={VENDURE_SHOP_API_URL} />
   </div>
 
   <h2 class="text-xl font-bold p-3">Shipping Address</h2>
-  <div class="p-3 max-w-64">
+  <div class="p-3 max-w-80">
     <AddressForm client:load labels={addressLabels} endpoint={VENDURE_SHOP_API_URL} />
   </div>
+
+  <h2 class="text-xl font-bold p-3">Shipping Method</h2>
+  <div class="p-3 max-w-80">
+    <ShippingSelector client:load endpoint={VENDURE_SHOP_API_URL} />
+  </div>
+
+  <h2 class="text-xl font-bold p-3">Shipping Destination</h2>
+  <div class="p-3 max-w-80">
+    <FoxpostSelector client:only></FoxpostSelector>
+  </div>
+
+  <h2 class="text-xl font-bold p-3">
+    Payment
+  </h2>
+  <div>
+
+  </div>
 </Layout>
+
+<script>
+  const dummyContact = {
+    firstName: 'Teszt',
+    lastName: 'Elek',
+    emailAddress: 'teszt.elek@example.com',
+    phoneNumber: '+36301234567',
+  };
+
+  const dummyAddress = {
+    streetLine1: 'Andrássy út 60',
+    streetLine2: '',
+    city: 'Budapest',
+    province: 'Pest',
+    postalCode: '1062',
+    countryCode: 'HU',
+  };
+
+  document.getElementById('fill-dummy-data')?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('fill-contact-form', { detail: dummyContact }));
+    window.dispatchEvent(new CustomEvent('fill-address-form', { detail: dummyAddress }));
+  });
+</script>

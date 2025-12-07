@@ -1,6 +1,7 @@
 <script lang="ts">
   import { z } from 'zod';
   import FormSection from './FormSection.svelte';
+  import { onMount } from 'svelte';
 
   interface Props {
     endpoint?: string;
@@ -10,10 +11,11 @@
       emailAddress: string;
       phoneNumber: string;
     };
+    initialData?: ContactData;
     onSuccess?: (data: ContactData) => void;
   }
 
-  let { endpoint, labels, onSuccess }: Props = $props();
+  let { endpoint, labels, initialData, onSuccess }: Props = $props();
 
   const schema = z.object({
     firstName: z.string().min(1, 'First name is required'),
@@ -29,11 +31,19 @@
   let formError = $state<string | null>(null);
   let submitting = $state(false);
 
-  let form = $state<ContactData>({
+  let form = $state<ContactData>(initialData ?? {
     firstName: '',
     lastName: '',
     emailAddress: '',
     phoneNumber: '',
+  });
+
+  onMount(() => {
+    const handler = (e: CustomEvent<ContactData>) => {
+      form = { ...e.detail };
+    };
+    window.addEventListener('fill-contact-form', handler as EventListener);
+    return () => window.removeEventListener('fill-contact-form', handler as EventListener);
   });
 
   async function handleSubmit(e: SubmitEvent) {
@@ -117,26 +127,26 @@
     {/if}
 
     <div class="flex flex-col">
-      <label>{labels.firstName}</label>
-      <input bind:value={form.firstName} name="firstName" class="border p-1" />
+      <label for="firstName">{labels.firstName}</label>
+      <input id="firstName" bind:value={form.firstName} name="firstName" class="border p-1" />
       {#if errors.firstName}<span class="text-red-500 text-sm">{errors.firstName}</span>{/if}
     </div>
 
     <div class="flex flex-col">
-      <label>{labels.lastName}</label>
-      <input bind:value={form.lastName} name="lastName" class="border p-1" />
+      <label for="lastName">{labels.lastName}</label>
+      <input id="lastName" bind:value={form.lastName} name="lastName" class="border p-1" />
       {#if errors.lastName}<span class="text-red-500 text-sm">{errors.lastName}</span>{/if}
     </div>
 
     <div class="flex flex-col">
-      <label>{labels.emailAddress}</label>
-      <input bind:value={form.emailAddress} name="emailAddress" type="email" class="border p-1" />
+      <label for="emailAddress">{labels.emailAddress}</label>
+      <input id="emailAddress" bind:value={form.emailAddress} name="emailAddress" type="email" class="border p-1" />
       {#if errors.emailAddress}<span class="text-red-500 text-sm">{errors.emailAddress}</span>{/if}
     </div>
 
     <div class="flex flex-col">
-      <label>{labels.phoneNumber}</label>
-      <input bind:value={form.phoneNumber} name="phoneNumber" type="tel" class="border p-1" />
+      <label for="phoneNumber">{labels.phoneNumber}</label>
+      <input id="phoneNumber" bind:value={form.phoneNumber} name="phoneNumber" type="tel" class="border p-1" />
       {#if errors.phoneNumber}<span class="text-red-500 text-sm">{errors.phoneNumber}</span>{/if}
     </div>
 

@@ -1,6 +1,5 @@
 ---
 import { ShoppingCart } from '@lucide/astro';
-import { $cart } from './cart';
 ---
 <!-- Cart Icon Button -->
 <button 
@@ -19,7 +18,7 @@ import { $cart } from './cart';
 
 <script>
     import type { OrderLine } from "../../generated/graphql";
-    import { $cart, formatPrice, removeCartLine } from "./cart";
+    import { cart, formatPrice, removeCartLine } from "./cart";
     
     function getTotalQuantity(cart: any) {
         if (!cart?.lines?.length) return 0;
@@ -90,12 +89,12 @@ import { $cart } from './cart';
     const itemsInCart = document.getElementById("items-in-cart");
     
     let cartItems: OrderLine[] = [];
-    $cart.subscribe(cart => {
-        if(!cart || !itemsInCart) return;
-        const totalQuantity = getTotalQuantity(cart);
+    cart.subscribe(cartValue => {
+        if(!cartValue || !itemsInCart) return;
+        const totalQuantity = getTotalQuantity(cartValue);
         itemsInCart.innerHTML = `${totalQuantity}`;
-        cartItems = cart.lines;
-        renderCartItems(cart);
+        cartItems = cartValue.lines;
+        renderCartItems(cartValue);
     });
     
     // Handle remove item clicks

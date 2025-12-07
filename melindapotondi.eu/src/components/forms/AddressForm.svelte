@@ -1,6 +1,7 @@
 <script lang="ts">
   import { z } from 'zod';
   import FormSection from './FormSection.svelte';
+  import { onMount } from 'svelte';
 
   interface Props {
     endpoint: string;
@@ -13,6 +14,7 @@
       country: string;
     };
     countries?: { code: string; name: string }[];
+    initialData?: AddressData;
     onSuccess?: (data: AddressData) => void;
   }
 
@@ -24,6 +26,7 @@
       { code: 'AT', name: 'Austria' },
       { code: 'DE', name: 'Germany' },
     ],
+    initialData,
     onSuccess 
   }: Props = $props();
 
@@ -43,13 +46,21 @@
   let formError = $state<string | null>(null);
   let submitting = $state(false);
 
-  let form = $state<AddressData>({
+  let form = $state<AddressData>(initialData ?? {
     streetLine1: '',
     streetLine2: '',
     city: '',
     province: '',
     postalCode: '',
     countryCode: '',
+  });
+
+  onMount(() => {
+    const handler = (e: CustomEvent<AddressData>) => {
+      form = { ...e.detail };
+    };
+    window.addEventListener('fill-address-form', handler as EventListener);
+    return () => window.removeEventListener('fill-address-form', handler as EventListener);
   });
 
   function getCountryName(code: string): string {
@@ -105,6 +116,9 @@
 
       committed = result.data;
       onSuccess?.(result.data);
+      
+      // Dispatch event to notify shipping selector that address is set
+      window.dispatchEvent(new CustomEvent('shipping-address-set'));
     } catch (err) {
       formError = 'Network error. Please try again.';
       console.error(err);
@@ -138,38 +152,38 @@
     {/if}
 
     <div class="flex flex-col">
-      <label>{labels.streetLine1}</label>
-      <input bind:value={form.streetLine1} class="border p-1" />
+      <label for="streetLine1">{labels.streetLine1}</label>
+      <input id="streetLine1" bind:value={form.streetLine1} name="streetLine1" class="border p-1" />
       {#if errors.streetLine1}<span class="text-red-500 text-sm">{errors.streetLine1}</span>{/if}
     </div>
 
     <div class="flex flex-col">
-      <label>{labels.streetLine2}</label>
-      <input bind:value={form.streetLine2} class="border p-1" />
+      <label for="streetLine2">{labels.streetLine2}</label>
+      <input id="streetLine2" bind:value={form.streetLine2} name="streetLine2" class="border p-1" />
       {#if errors.streetLine2}<span class="text-red-500 text-sm">{errors.streetLine2}</span>{/if}
     </div>
 
     <div class="flex flex-col">
-      <label>{labels.city}</label>
-      <input bind:value={form.city} class="border p-1" />
+      <label for="city">{labels.city}</label>
+      <input id="city" bind:value={form.city} name="city" class="border p-1" />
       {#if errors.city}<span class="text-red-500 text-sm">{errors.city}</span>{/if}
     </div>
 
     <div class="flex flex-col">
-      <label>{labels.province}</label>
-      <input bind:value={form.province} class="border p-1" />
+      <label for="province">{labels.province}</label>
+      <input id="province" bind:value={form.province} name="province" class="border p-1" />
       {#if errors.province}<span class="text-red-500 text-sm">{errors.province}</span>{/if}
     </div>
 
     <div class="flex flex-col">
-      <label>{labels.postalCode}</label>
-      <input bind:value={form.postalCode} class="border p-1" />
+      <label for="postalCode">{labels.postalCode}</label>
+      <input id="postalCode" bind:value={form.postalCode} name="postalCode" class="border p-1" />
       {#if errors.postalCode}<span class="text-red-500 text-sm">{errors.postalCode}</span>{/if}
     </div>
 
     <div class="flex flex-col">
-      <label>{labels.country}</label>
-      <select bind:value={form.countryCode} class="border p-1">
+      <label for="countryCode">{labels.country}</label>
+      <select id="countryCode" bind:value={form.countryCode} name="countryCode" class="border p-1">
         <option value="">Select country</option>
         {#each countries as country}
           <option value={country.code}>{country.name}</option>

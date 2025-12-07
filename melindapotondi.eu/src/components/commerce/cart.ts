@@ -1,8 +1,8 @@
 import { VENDURE_SHOP_API_URL } from "astro:env/client";
-import { atom } from "nanostores";
+import { writable } from "svelte/store";
 import type { ActiveOrderResult, Order } from "../../generated/graphql";
 
-export const $cart = atom<Order|null>(null)
+export const cart = writable<Order|null>(null)
 
 export async function getActiveOrder() {
     const response = await fetch(VENDURE_SHOP_API_URL, {
@@ -39,7 +39,7 @@ export async function getActiveOrder() {
 
     const result = await response.json();
     if (result.data?.activeOrder) {
-        $cart.set(result.data.activeOrder);
+        cart.set(result.data.activeOrder);
     }
     return result.data?.activeOrder || null;
 }
@@ -50,7 +50,7 @@ export async function initializeCart() {
         return activeOrder;
     } catch (error) {
         console.error('Failed to initialize cart:', error);
-        $cart.set(null);
+        cart.set(null);
         return null;
     }
 }
@@ -105,7 +105,7 @@ export async function addToCart(productVariantId: string | number, quantity: num
 
     const result = await response.json();
     if(result.data?.addItemToOrder?.id){
-        $cart.set(result.data?.addItemToOrder)
+        cart.set(result.data?.addItemToOrder)
     }
     return result
 }
@@ -152,9 +152,9 @@ export async function removeCartLine(lineId: string) {
 
     const result = await response.json();
     if (result.data?.removeOrderLine?.id) {
-        $cart.set(result.data.removeOrderLine);
+        cart.set(result.data.removeOrderLine);
     } else if (result.data?.removeOrderLine === null) {
-        $cart.set(null);
+        cart.set(null);
     }
     return result;
 }
