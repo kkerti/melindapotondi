@@ -6,6 +6,7 @@ import AddressForm from '@components/forms/AddressForm.svelte';
 import FoxpostSelector from '@components/forms/FoxpostSelector.svelte';
 import ShippingSelector from '@components/forms/ShippingSelector.svelte';
 import OrderSummary from '@components/commerce/OrderSummary.svelte';
+import BarionPayment from '@components/commerce/BarionPayment.svelte';
 
 import { VENDURE_SHOP_API_URL } from 'astro:env/client';
 
@@ -66,8 +67,8 @@ const addressLabels = {
   <h2 class="text-xl font-bold p-3">
     Payment
   </h2>
-  <div>
-
+  <div class="p-3 max-w-80">
+    <BarionPayment client:load />
   </div>
 </Layout>
 

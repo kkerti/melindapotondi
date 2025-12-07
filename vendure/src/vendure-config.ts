@@ -95,6 +95,12 @@ export const config: VendureConfig = {
                 apiPort: serverPort,
             },
         }),
-        VendureBarionPlugin.init({}),
+        VendureBarionPlugin.init({
+            posKey: process.env.BARION_POS_KEY || '',
+            payeeEmail: process.env.BARION_PAYEE_EMAIL || '',
+            callbackUrl: process.env.BARION_CALLBACK_URL || 'http://localhost:3000/payments/barion/callback',
+            redirectUrl: process.env.BARION_REDIRECT_URL || 'http://localhost:4321/checkout/barion-return',
+            sandbox: process.env.BARION_SANDBOX === 'true',
+        }),
     ],
 };

@@ -1,0 +1,11 @@
+---
+import Layout from '@layouts/Layout.astro';
+import BarionReturn from '@components/commerce/BarionReturn.svelte';
+
+// Get orderCode from query params (set by Barion redirect)
+const orderCode = Astro.url.searchParams.get('orderCode');
+---
+
+<Layout>
+    <BarionReturn client:load orderCode={orderCode} />
+</Layout>
