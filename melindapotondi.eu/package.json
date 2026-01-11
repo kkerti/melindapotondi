@@ -8,7 +8,10 @@
     "preview": "astro preview",
     "wrangler": "npx astro build && npx wrangler dev",
     "astro": "astro",
-    "codegen": "graphql-codegen --config codegen.ts"
+    "codegen": "graphql-codegen --config codegen.ts",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.10",
@@ -27,6 +30,7 @@
   "devDependencies": {
     "@graphql-codegen/cli": "6.0.0",
     "@graphql-codegen/typescript": "5.0.2",
+    "@playwright/test": "^1.57.0",
     "@types/leaflet": "^1.9.21",
     "typescript": "^5.9.3",
     "wrangler": "^4.42.2"

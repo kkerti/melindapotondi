@@ -1,11 +1,15 @@
 ---
+export const prerender = false;
+
 import Layout from '@layouts/Layout.astro';
 import BarionReturn from '@components/commerce/BarionReturn.svelte';
-
 // Get orderCode from query params (set by Barion redirect)
+// Barion may return with ?paymentId=... so we also handle that case
 const orderCode = Astro.url.searchParams.get('orderCode');
+const barionPaymentId = Astro.url.searchParams.get('paymentId');
+console.log(orderCode)
 ---
 
 <Layout>
-    <BarionReturn client:load orderCode={orderCode} />
+    <BarionReturn client:load orderCode={orderCode} barionPaymentId={barionPaymentId} />
 </Layout>

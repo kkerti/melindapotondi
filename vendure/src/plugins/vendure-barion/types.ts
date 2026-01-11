@@ -306,7 +306,9 @@ export function isBarionError(response: unknown): response is BarionErrorRespons
         typeof response === 'object' &&
         response !== null &&
         'Errors' in response &&
-        Array.isArray((response as BarionErrorResponse).Errors)
+        Array.isArray((response as BarionErrorResponse).Errors &&
+        (response as BarionErrorResponse).Errors.length > 0
+        )
     );
 }
 

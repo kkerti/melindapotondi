@@ -62,7 +62,6 @@ export const barionPaymentHandler = new PaymentMethodHandler({
                 state: 'Authorized' as const,
                 transactionId: result.paymentId,
                 metadata: {
-                    barionPaymentId: result.paymentId,
                     gatewayUrl: result.gatewayUrl,
                 },
             };
@@ -79,7 +78,7 @@ export const barionPaymentHandler = new PaymentMethodHandler({
     async settlePayment(ctx, order, payment, args): Promise<SettlePaymentResult | SettlePaymentErrorResult> {
         Logger.info(`Settling Barion payment for order ${order.code}`, loggerCtx);
 
-        const barionPaymentId = payment.metadata?.barionPaymentId as string;
+        const barionPaymentId = payment.transactionId;
 
         if (!barionPaymentId) {
             return {

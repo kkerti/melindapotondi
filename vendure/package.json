@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev:server": "ts-node ./src/index.ts",
-    "dev:worker": "ts-node ./src/index-worker.ts",
+    "dev:server": "nodemon ./src/index.ts",
+    "dev:worker": "nodemon ./src/index-worker.ts",
     "dev": "concurrently npm:dev:*",
     "build": "tsc",
     "start:server": "node ./dist/index.js",
@@ -27,6 +27,7 @@
     "@graphql-codegen/typescript": "5.0.6",
     "@vendure/cli": "3.4.4",
     "concurrently": "9.2.1",
+    "nodemon": "^3.1.11",
     "typescript": "5.8.2"
   }
 }

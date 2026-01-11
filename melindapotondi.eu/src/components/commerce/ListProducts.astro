@@ -2,6 +2,7 @@
 import { Image } from "astro:assets";
 import AddToCart from "./AddToCart.astro";
 import { searchProducts } from "./products";
+import { formatPrice } from "./cart";
 
 const products = await searchProducts("camera");
 ---
@@ -10,6 +11,7 @@ const products = await searchProducts("camera");
         <div class="border-2 border-slate-300 rounded-2xl p-4">
             <a href={`shop/${item.slug}`}>{item.productName}</a>
             <img class="max-h-80" src={item.productAsset.preview} alt={item.productName}/>
+            {formatPrice(item.priceWithTax.min)}
             <AddToCart itemId={item.productVariantId}/>
         </div>
     )}

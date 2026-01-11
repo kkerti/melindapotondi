@@ -11,6 +11,7 @@
         
         try {
             const result = await initiateBarionPayment();
+            console.log("RESSS", result)
             
             if (result.success && result.gatewayUrl) {
                 // Redirect to Barion payment page

@@ -52,7 +52,7 @@ export class BarionService {
         // Map order lines to Barion items
         const items: Item[] = order.lines.map(line => ({
             name: line.productVariant.name,
-            description: line.productVariant.sku || undefined,
+            description: line.productVariant.sku || line.productVariant.name,
             quantity: line.quantity,
             unit: 'db',
             unitPrice: line.proratedUnitPrice / 100, // Convert from cents to currency units
@@ -64,6 +64,7 @@ export class BarionService {
         if (order.shipping > 0) {
             items.push({
                 name: 'Szállítás',
+                description: 'Szállítási költség',
                 quantity: 1,
                 unit: 'db',
                 unitPrice: order.shipping / 100,
@@ -93,7 +94,7 @@ export class BarionService {
             CallbackUrl: `${this.options.callbackUrl}?orderCode=${order.code}`,
             Transactions: [transaction],
             Locale: locale,
-            Currency: Currency.HUF, // TODO: Map from order currency
+            Currency: order.currencyCode as unknown as Currency,
             OrderNumber: order.code,
         };
 
@@ -104,11 +105,14 @@ export class BarionService {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'x-pos-key': this.options.posKey
                 },
                 body: JSON.stringify(request),
             });
 
             const data = await response.json();
+
+            console.log(data);
 
             if (isBarionError(data)) {
                 const errorMsg = data.Errors.map(e => `${e.ErrorCode}: ${e.Description}`).join(', ');
@@ -142,14 +146,16 @@ export class BarionService {
             Logger.info(`Fetching payment state for ${paymentId}`, loggerCtx);
 
             const response = await fetch(
-                `${this.apiBaseUrl}/v4/Payment/${paymentId}/PaymentState?POSKey=${this.options.posKey}`,
+                `${this.apiBaseUrl}/v4/payment/${paymentId}/paymentstate`,
                 {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
+                        'x-pos-key': this.options.posKey
                     },
                 },
             );
+
 
             const data = await response.json();
 

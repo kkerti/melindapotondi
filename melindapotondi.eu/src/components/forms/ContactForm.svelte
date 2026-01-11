@@ -82,6 +82,8 @@
 
       const json = await res.json();
 
+      console.log(json)
+
       if (json.errors) {
         formError = json.errors[0]?.message || 'An error occurred';
         return;

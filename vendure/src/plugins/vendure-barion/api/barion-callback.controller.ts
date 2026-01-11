@@ -1,5 +1,5 @@
-import { Controller, Get, Inject, Query, Res } from '@nestjs/common';
-import { Response } from 'express';
+import { Body, Controller, Get, Inject, Post, Query, Req, Res } from '@nestjs/common';
+import { Request, Response } from 'express';
 import {
     InternalServerError,
     Logger,
@@ -33,36 +33,42 @@ export class BarionCallbackController {
 
     /**
      * Barion callback endpoint (IPN)
-     * Called by Barion when the payment status changes
+     * Called by Barion via POST when the payment status changes.
+     * Barion sends PaymentId in the request body.
      */
-    @Get('callback')
+    @Post('callback')
     async handleCallback(
-        @Query('paymentId') paymentId: string,
         @Query('orderCode') orderCode: string,
+        @Body() body: { PaymentId?: string },
+        @Req() req: Request,
         @Res() res: Response,
     ): Promise<void> {
-        Logger.info(`Received Barion callback for paymentId: ${paymentId}, orderCode: ${orderCode}`, loggerCtx);
+        const paymentId = body.PaymentId;
+        Logger.info(`Received Barion callback (POST) for paymentId: ${paymentId}, orderCode: ${orderCode}`, loggerCtx);
 
         // Barion requires a 200 response within 15 seconds
         // Send response immediately, process async
         res.status(200).send('OK');
 
+        if (!paymentId) {
+            Logger.warn('Barion callback received without PaymentId in body', loggerCtx);
+            return;
+        }
+
         try {
-            await this.processCallback(paymentId, orderCode);
+            await this.processCallback(paymentId, orderCode, req);
         } catch (error) {
             Logger.error(`Error processing Barion callback: ${error}`, loggerCtx);
         }
     }
 
-    private async processCallback(paymentId: string, orderCode: string): Promise<void> {
-        if (!paymentId) {
-            Logger.warn('Barion callback received without paymentId', loggerCtx);
-            return;
-        }
+    private async processCallback(paymentId: string, orderCode: string, req: Request): Promise<void> {
 
         // Create a request context for internal operations
+        // Pass the request object so EmailPlugin can access headers, this is how it was 
         const ctx = await this.requestContextService.create({
             apiType: 'admin',
+            req,
         });
 
         // Get the payment state from Barion
@@ -76,7 +82,7 @@ export class BarionCallbackController {
         Logger.info(`Barion payment ${paymentId} status: ${paymentState.status}`, loggerCtx);
 
         // Find the order and payment
-        const order = await this.findOrderByCode(ctx, orderCode);
+        const order = await this.orderService.findOneByCode(ctx, orderCode, ['payments']);
 
         if (!order) {
             Logger.error(`Order not found for orderCode: ${orderCode}`, loggerCtx);
@@ -84,7 +90,7 @@ export class BarionCallbackController {
         }
 
         // Find the payment with matching Barion payment ID
-        const payment = order.payments?.find(p => p.metadata?.barionPaymentId === paymentId);
+        const payment = order.payments?.find(p => p.method === 'barion' && p.transactionId === paymentId);
 
         if (!payment) {
             Logger.error(`Payment not found for paymentId: ${paymentId} in order ${orderCode}`, loggerCtx);
@@ -114,16 +120,5 @@ export class BarionCallbackController {
             // The order remains with an authorized but unsettled payment
             // which can be handled by admin or cleaned up later
         }
-    }
-
-    private async findOrderByCode(ctx: RequestContext, orderCode: string): Promise<Order | null> {
-        const qb = this.connection
-            .getRepository(ctx, Order)
-            .createQueryBuilder('order')
-            .leftJoinAndSelect('order.payments', 'payments')
-            .where('order.code = :code', { code: orderCode });
-
-        const order = await qb.getOne();
-        return order;
     }
 }
