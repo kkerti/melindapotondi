@@ -26,6 +26,7 @@
     "@graphql-codegen/cli": "6.1.0",
     "@graphql-codegen/typescript": "5.0.6",
     "@vendure/cli": "3.4.4",
+    "@vendure/testing": "^3.5.2",
     "concurrently": "9.2.1",
     "nodemon": "^3.1.11",
     "typescript": "5.8.2"

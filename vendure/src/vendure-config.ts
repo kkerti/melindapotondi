@@ -14,6 +14,7 @@ import { GraphiqlPlugin } from '@vendure/graphiql-plugin';
 import 'dotenv/config';
 import path from 'path';
 import { VendureBarionPlugin } from './plugins/vendure-barion/vendure-barion.plugin';
+import { VendureWorkshopPlugin } from './plugins/vendure-workshop/vendure-workshop.plugin';
 
 const IS_DEV = process.env.APP_ENV === 'dev';
 const serverPort = +process.env.PORT || 3000;
@@ -108,5 +109,6 @@ export const config: VendureConfig = {
             redirectUrl: process.env.BARION_REDIRECT_URL || 'http://localhost:4321/checkout/barion-return',
             sandbox: process.env.BARION_SANDBOX === 'true',
         }),
+        VendureWorkshopPlugin.init({}),
     ],
 };
