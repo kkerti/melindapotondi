@@ -1,10 +1,20 @@
 import { ID } from '@vendure/common/lib/shared-types';
+import { WorkshopSkuStrategy } from './strategies/workshop-sku.strategy';
 
 /**
  * @description
  * The plugin can be configured using the following options:
  */
-export interface PluginInitOptions {}
+export interface PluginInitOptions {
+    /**
+     * @description
+     * Defines how the SKU is generated for the ProductVariant that gets
+     * auto-provisioned for a WorkshopEvent.
+     *
+     * @default DefaultWorkshopSkuStrategy
+     */
+    skuStrategy?: WorkshopSkuStrategy;
+}
 
 // ============ Input Types ============
 

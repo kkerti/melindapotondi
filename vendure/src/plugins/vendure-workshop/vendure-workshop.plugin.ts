@@ -1,4 +1,6 @@
-import { PluginCommonModule, Type, VendurePlugin } from '@vendure/core';
+import { OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
+import { Injector, PluginCommonModule, Type, VendurePlugin } from '@vendure/core';
 
 import { VENDURE_WORKSHOP_PLUGIN_OPTIONS } from './constants';
 import { PluginInitOptions } from './types';
@@ -9,6 +11,7 @@ import { WorkshopEventService } from './services/workshop-event.service';
 import { adminApiExtensions, shopApiExtensions } from './api/api-extensions';
 import { WorkshopAdminResolver } from './api/workshop-admin.resolver';
 import { WorkshopShopResolver } from './api/workshop-shop.resolver';
+import { DefaultWorkshopSkuStrategy } from './strategies/workshop-sku.strategy';
 
 @VendurePlugin({
     imports: [PluginCommonModule],
@@ -38,11 +41,25 @@ import { WorkshopShopResolver } from './api/workshop-shop.resolver';
         resolvers: [WorkshopShopResolver],
     },
 })
-export class VendureWorkshopPlugin {
+export class VendureWorkshopPlugin implements OnApplicationBootstrap, OnApplicationShutdown {
     static options: PluginInitOptions;
 
+    constructor(private moduleRef: ModuleRef) {}
+
     static init(options: PluginInitOptions = {}): Type<VendureWorkshopPlugin> {
-        this.options = options;
+        this.options = { skuStrategy: new DefaultWorkshopSkuStrategy(), ...options };
         return VendureWorkshopPlugin;
+    }
+
+    async onApplicationBootstrap() {
+        if (VendureWorkshopPlugin.options.skuStrategy?.init) {
+            await VendureWorkshopPlugin.options.skuStrategy.init(new Injector(this.moduleRef));
+        }
+    }
+
+    async onApplicationShutdown() {
+        if (VendureWorkshopPlugin.options.skuStrategy?.destroy) {
+            await VendureWorkshopPlugin.options.skuStrategy.destroy();
+        }
     }
 }
