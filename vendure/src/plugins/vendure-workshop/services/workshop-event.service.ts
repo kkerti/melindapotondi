@@ -241,6 +241,11 @@ export class WorkshopEventService {
 
         const product = await this.productService.create(workshopsCtx, {
             enabled: true,
+            // Workshop tickets are purely virtual - nothing to ship - so the
+            // conditional shipping-method guard in `conditionalShippingOrderProcess`
+            // (see `vendure-workshop.plugin.ts`) can allow ticket-only Orders through to
+            // payment without a shipping method assigned.
+            customFields: { requiresShipping: false },
             translations: [
                 {
                     languageCode: workshopsCtx.languageCode,
