@@ -2,10 +2,10 @@ import { PluginCommonModule, Type, VendurePlugin } from '@vendure/core';
 
 import { VENDURE_WORKSHOP_PLUGIN_OPTIONS } from './constants';
 import { PluginInitOptions } from './types';
+import { Workshop } from './entities/workshop.entity';
 import { WorkshopEvent } from './entities/workshop-event.entity';
-import { EventBooking } from './entities/event-booking.entity';
+import { WorkshopService } from './services/workshop.service';
 import { WorkshopEventService } from './services/workshop-event.service';
-import { EventBookingService } from './services/event-booking.service';
 import { adminApiExtensions, shopApiExtensions } from './api/api-extensions';
 import { WorkshopAdminResolver } from './api/workshop-admin.resolver';
 import { WorkshopShopResolver } from './api/workshop-shop.resolver';
@@ -17,8 +17,8 @@ import { WorkshopShopResolver } from './api/workshop-shop.resolver';
             provide: VENDURE_WORKSHOP_PLUGIN_OPTIONS,
             useFactory: () => VendureWorkshopPlugin.options,
         },
+        WorkshopService,
         WorkshopEventService,
-        EventBookingService,
     ],
     configuration: config => {
         // Plugin-specific configuration
@@ -28,7 +28,7 @@ import { WorkshopShopResolver } from './api/workshop-shop.resolver';
         return config;
     },
     compatibility: '^3.0.0',
-    entities: [WorkshopEvent, EventBooking],
+    entities: [Workshop, WorkshopEvent],
     adminApiExtensions: {
         schema: adminApiExtensions,
         resolvers: [WorkshopAdminResolver],

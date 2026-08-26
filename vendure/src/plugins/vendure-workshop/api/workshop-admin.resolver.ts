@@ -1,18 +1,35 @@
-import { Args, Mutation, Query, Resolver, ResolveField, Parent } from '@nestjs/graphql';
+import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Permission } from '@vendure/common/lib/generated-types';
 import { Allow, Ctx, ID, ListQueryOptions, RequestContext, Transaction } from '@vendure/core';
-import { WorkshopEventService } from '../services/workshop-event.service';
-import { EventBookingService } from '../services/event-booking.service';
 import { WorkshopEvent } from '../entities/workshop-event.entity';
-import { EventBooking } from '../entities/event-booking.entity';
-import { CreateWorkshopEventInput, UpdateWorkshopEventInput } from '../types';
+import { Workshop } from '../entities/workshop.entity';
+import { WorkshopEventService } from '../services/workshop-event.service';
+import { WorkshopService } from '../services/workshop.service';
+import {
+    CreateWorkshopEventInput,
+    CreateWorkshopInput,
+    UpdateWorkshopEventInput,
+    UpdateWorkshopInput,
+} from '../types';
 
-@Resolver('WorkshopEvent')
+@Resolver()
 export class WorkshopAdminResolver {
     constructor(
+        private workshopService: WorkshopService,
         private workshopEventService: WorkshopEventService,
-        private eventBookingService: EventBookingService,
     ) {}
+
+    @Query()
+    @Allow(Permission.SuperAdmin)
+    async workshop(@Ctx() ctx: RequestContext, @Args() args: { id: ID }): Promise<Workshop | null> {
+        return this.workshopService.findOne(ctx, args.id);
+    }
+
+    @Query()
+    @Allow(Permission.SuperAdmin)
+    async workshops(@Ctx() ctx: RequestContext, @Args() args: { options?: ListQueryOptions<Workshop> }) {
+        return this.workshopService.findAll(ctx, args.options, ['events']);
+    }
 
     @Query()
     @Allow(Permission.SuperAdmin)
@@ -29,29 +46,34 @@ export class WorkshopAdminResolver {
         @Ctx() ctx: RequestContext,
         @Args() args: { options?: ListQueryOptions<WorkshopEvent> },
     ) {
-        return this.workshopEventService.findAll(ctx, args.options, ['bookings']);
+        return this.workshopEventService.findAll(ctx, args.options, ['workshop']);
     }
 
-    @Query()
+    @Transaction()
+    @Mutation()
     @Allow(Permission.SuperAdmin)
-    async eventBookings(
+    async createWorkshop(
         @Ctx() ctx: RequestContext,
-        @Args() args: { eventId?: ID; options?: ListQueryOptions<EventBooking> },
-    ) {
-        if (args.eventId) {
-            const bookings = await this.eventBookingService.findByEvent(ctx, args.eventId);
-            return { items: bookings, totalItems: bookings.length };
-        }
-        return this.eventBookingService.findAll(ctx, args.options);
+        @Args() args: { input: CreateWorkshopInput },
+    ): Promise<Workshop> {
+        return this.workshopService.create(ctx, args.input);
     }
 
-    @Query()
+    @Transaction()
+    @Mutation()
     @Allow(Permission.SuperAdmin)
-    async eventBooking(
+    async updateWorkshop(
         @Ctx() ctx: RequestContext,
-        @Args() args: { id: ID },
-    ): Promise<EventBooking | null> {
-        return this.eventBookingService.findOne(ctx, args.id);
+        @Args() args: { input: UpdateWorkshopInput },
+    ): Promise<Workshop> {
+        return this.workshopService.update(ctx, args.input);
+    }
+
+    @Transaction()
+    @Mutation()
+    @Allow(Permission.SuperAdmin)
+    async deleteWorkshop(@Ctx() ctx: RequestContext, @Args() args: { id: ID }) {
+        return this.workshopService.delete(ctx, args.id);
     }
 
     @Transaction()
@@ -79,18 +101,5 @@ export class WorkshopAdminResolver {
     @Allow(Permission.SuperAdmin)
     async deleteWorkshopEvent(@Ctx() ctx: RequestContext, @Args() args: { id: ID }) {
         return this.workshopEventService.delete(ctx, args.id);
-    }
-
-    @Transaction()
-    @Mutation()
-    @Allow(Permission.SuperAdmin)
-    async deleteEventBooking(@Ctx() ctx: RequestContext, @Args() args: { id: ID }) {
-        return this.eventBookingService.delete(ctx, args.id);
-    }
-
-    @ResolveField()
-    async availableSlots(@Ctx() ctx: RequestContext, @Parent() event: WorkshopEvent): Promise<number> {
-        const bookingCount = event.bookings?.length ?? 0;
-        return Math.max(0, event.maxParticipants - bookingCount);
     }
 }

@@ -4,108 +4,128 @@ import gql from 'graphql-tag';
  * Common types shared between Admin and Shop APIs
  */
 const commonApiExtensions = gql`
-    type WorkshopEvent implements Node {
+    type Workshop implements Node {
         id: ID!
         createdAt: DateTime!
         updatedAt: DateTime!
         title: String!
         description: String
-        location: String!
-        startsAt: DateTime!
-        endsAt: DateTime!
-        maxParticipants: Int!
-        isPublished: Boolean!
-        bookings: [EventBooking!]!
-        availableSlots: Int!
+        slug: String!
+        defaultDurationMinutes: Int!
+        defaultCapacity: Int!
+        defaultPriceInCents: Int!
+        isActive: Boolean!
+        events: [WorkshopEvent!]!
     }
 
-    type EventBooking implements Node {
+    type WorkshopEvent implements Node {
         id: ID!
         createdAt: DateTime!
         updatedAt: DateTime!
-        nickname: String!
-        email: String
-        event: WorkshopEvent!
+        workshop: Workshop!
+        startsAt: DateTime!
+        endsAt: DateTime!
+        location: String!
+        capacity: Int!
+        priceInCents: Int
+        isPublished: Boolean!
+        productId: ID
+        productVariantId: ID
+    }
+
+    type WorkshopList implements PaginatedList {
+        items: [Workshop!]!
+        totalItems: Int!
     }
 
     type WorkshopEventList implements PaginatedList {
         items: [WorkshopEvent!]!
         totalItems: Int!
     }
-
-    type EventBookingList implements PaginatedList {
-        items: [EventBooking!]!
-        totalItems: Int!
-    }
-
-    # Error types following Vendure's ErrorResult pattern
-    enum WorkshopErrorCode {
-        EVENT_NOT_FOUND
-        EVENT_FULL
-        INVALID_PASSWORD
-        EVENT_NOT_PUBLISHED
-        BOOKING_NOT_FOUND
-        DUPLICATE_NICKNAME
-    }
-
-    interface WorkshopErrorResult {
-        errorCode: WorkshopErrorCode!
-        message: String!
-    }
-
-    type EventNotFoundError implements WorkshopErrorResult {
-        errorCode: WorkshopErrorCode!
-        message: String!
-    }
-
-    type EventFullError implements WorkshopErrorResult {
-        errorCode: WorkshopErrorCode!
-        message: String!
-    }
-
-    type InvalidPasswordError implements WorkshopErrorResult {
-        errorCode: WorkshopErrorCode!
-        message: String!
-    }
-
-    type EventNotPublishedError implements WorkshopErrorResult {
-        errorCode: WorkshopErrorCode!
-        message: String!
-    }
-
-    type DuplicateNicknameError implements WorkshopErrorResult {
-        errorCode: WorkshopErrorCode!
-        message: String!
-    }
 `;
 
 /**
- * Admin API extensions for managing workshop events and bookings
+ * Admin API extensions for managing workshop templates and their scheduled events
  */
 export const adminApiExtensions = gql`
     ${commonApiExtensions}
 
-    input CreateWorkshopEventInput {
+    input CreateWorkshopInput {
         title: String!
         description: String
-        location: String!
+        slug: String!
+        defaultDurationMinutes: Int!
+        defaultCapacity: Int!
+        defaultPriceInCents: Int
+        isActive: Boolean
+    }
+
+    input UpdateWorkshopInput {
+        id: ID!
+        title: String
+        description: String
+        slug: String
+        defaultDurationMinutes: Int
+        defaultCapacity: Int
+        defaultPriceInCents: Int
+        isActive: Boolean
+    }
+
+    input CreateWorkshopEventInput {
+        workshopId: ID!
         startsAt: DateTime!
-        endsAt: DateTime!
-        maxParticipants: Int!
-        bookingPassword: String!
+        """
+        Optional - if omitted, computed as startsAt + workshop.defaultDurationMinutes.
+        """
+        endsAt: DateTime
+        location: String!
+        """
+        Optional - if omitted, defaults to workshop.defaultCapacity.
+        """
+        capacity: Int
+        priceInCents: Int
         isPublished: Boolean
     }
 
     input UpdateWorkshopEventInput {
         id: ID!
-        title: String
-        description: String
-        location: String
+        workshopId: ID
         startsAt: DateTime
         endsAt: DateTime
-        maxParticipants: Int
-        bookingPassword: String
+        location: String
+        capacity: Int
+        priceInCents: Int
         isPublished: Boolean
+    }
+
+    input WorkshopListOptions {
+        skip: Int
+        take: Int
+        sort: WorkshopSortParameter
+        filter: WorkshopFilterParameter
+    }
+
+    input WorkshopSortParameter {
+        id: SortOrder
+        createdAt: SortOrder
+        updatedAt: SortOrder
+        title: SortOrder
+        slug: SortOrder
+        defaultDurationMinutes: SortOrder
+        defaultCapacity: SortOrder
+        defaultPriceInCents: SortOrder
+    }
+
+    input WorkshopFilterParameter {
+        id: IDOperators
+        createdAt: DateOperators
+        updatedAt: DateOperators
+        title: StringOperators
+        slug: StringOperators
+        defaultDurationMinutes: NumberOperators
+        defaultCapacity: NumberOperators
+        defaultPriceInCents: NumberOperators
+        isActive: BooleanOperators
     }
 
     input WorkshopEventListOptions {
@@ -119,47 +139,35 @@ export const adminApiExtensions = gql`
         id: SortOrder
         createdAt: SortOrder
         updatedAt: SortOrder
-        title: SortOrder
         startsAt: SortOrder
         endsAt: SortOrder
-        maxParticipants: SortOrder
+        capacity: SortOrder
+        priceInCents: SortOrder
     }
 
     input WorkshopEventFilterParameter {
         id: IDOperators
         createdAt: DateOperators
         updatedAt: DateOperators
-        title: StringOperators
-        location: StringOperators
         startsAt: DateOperators
         endsAt: DateOperators
-        maxParticipants: NumberOperators
+        location: StringOperators
+        capacity: NumberOperators
+        priceInCents: NumberOperators
         isPublished: BooleanOperators
     }
 
-    input EventBookingListOptions {
-        skip: Int
-        take: Int
-        sort: EventBookingSortParameter
-        filter: EventBookingFilterParameter
-    }
-
-    input EventBookingSortParameter {
-        id: SortOrder
-        createdAt: SortOrder
-        updatedAt: SortOrder
-        nickname: SortOrder
-    }
-
-    input EventBookingFilterParameter {
-        id: IDOperators
-        createdAt: DateOperators
-        updatedAt: DateOperators
-        nickname: StringOperators
-        email: StringOperators
-    }
-
     extend type Query {
+        """
+        Get a single workshop template by ID
+        """
+        workshop(id: ID!): Workshop
+
+        """
+        Get a paginated list of all workshop templates
+        """
+        workshops(options: WorkshopListOptions): WorkshopList!
+
         """
         Get a single workshop event by ID
         """
@@ -169,21 +177,26 @@ export const adminApiExtensions = gql`
         Get a paginated list of all workshop events
         """
         workshopEvents(options: WorkshopEventListOptions): WorkshopEventList!
-
-        """
-        Get all bookings, optionally filtered by event
-        """
-        eventBookings(eventId: ID, options: EventBookingListOptions): EventBookingList!
-
-        """
-        Get a single booking by ID
-        """
-        eventBooking(id: ID!): EventBooking
     }
 
     extend type Mutation {
         """
-        Create a new workshop event
+        Create a new workshop template
+        """
+        createWorkshop(input: CreateWorkshopInput!): Workshop!
+
+        """
+        Update an existing workshop template
+        """
+        updateWorkshop(input: UpdateWorkshopInput!): Workshop!
+
+        """
+        Delete a workshop template. Fails if any workshop events still reference it.
+        """
+        deleteWorkshop(id: ID!): DeletionResponse!
+
+        """
+        Create a new scheduled workshop event from a workshop template
         """
         createWorkshopEvent(input: CreateWorkshopEventInput!): WorkshopEvent!
 
@@ -193,59 +206,37 @@ export const adminApiExtensions = gql`
         updateWorkshopEvent(input: UpdateWorkshopEventInput!): WorkshopEvent!
 
         """
-        Delete a workshop event and all its bookings
+        Delete a workshop event
         """
         deleteWorkshopEvent(id: ID!): DeletionResponse!
-
-        """
-        Cancel/delete a booking (admin)
-        """
-        deleteEventBooking(id: ID!): DeletionResponse!
     }
 `;
 
 /**
- * Shop API extensions for customers to view and book events
+ * Shop API extensions for customers to browse workshops and their upcoming events
  */
 export const shopApiExtensions = gql`
     ${commonApiExtensions}
-
-    input ReserveWorkshopSpotInput {
-        eventId: ID!
-        nickname: String!
-        password: String!
-        email: String
-    }
 
     input UpcomingWorkshopEventsOptions {
         skip: Int
         take: Int
     }
 
-    union ReserveSpotResult =
-          EventBooking
-        | EventNotFoundError
-        | EventFullError
-        | InvalidPasswordError
-        | EventNotPublishedError
-        | DuplicateNicknameError
-
     extend type Query {
         """
-        Get upcoming published workshop events
+        Get upcoming, published workshop events
         """
         upcomingWorkshopEvents(options: UpcomingWorkshopEventsOptions): WorkshopEventList!
 
         """
-        Get a single workshop event by ID (only if published)
+        Get a single published workshop event by ID
         """
         workshopEvent(id: ID!): WorkshopEvent
-    }
 
-    extend type Mutation {
         """
-        Reserve a spot at a workshop event using nickname and shared password
+        Get a single active workshop template by ID
         """
-        reserveWorkshopSpot(input: ReserveWorkshopSpotInput!): ReserveSpotResult!
+        workshop(id: ID!): Workshop
     }
 `;

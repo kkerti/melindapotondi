@@ -1,18 +1,19 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { DeletionResponse, DeletionResult } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import {
     assertFound,
     ListQueryBuilder,
     ListQueryOptions,
+    patchEntity,
     RelationPaths,
     RequestContext,
     TransactionalConnection,
-    patchEntity,
 } from '@vendure/core';
 import { MoreThanOrEqual } from 'typeorm';
-import { WorkshopEvent } from '../entities/workshop-event.entity';
 import { VENDURE_WORKSHOP_PLUGIN_OPTIONS } from '../constants';
+import { WorkshopEvent } from '../entities/workshop-event.entity';
+import { Workshop } from '../entities/workshop.entity';
 import { CreateWorkshopEventInput, PluginInitOptions, UpdateWorkshopEventInput } from '../types';
 
 @Injectable()
@@ -46,7 +47,8 @@ export class WorkshopEventService {
 
     /**
      * @description
-     * Returns upcoming published events for the shop API.
+     * Returns upcoming, published workshop events for the shop API, ordered
+     * by start date.
      */
     async findUpcoming(
         ctx: RequestContext,
@@ -61,7 +63,7 @@ export class WorkshopEventService {
                     startsAt: MoreThanOrEqual(now),
                 },
             })
-            .leftJoinAndSelect('workshopevent.bookings', 'bookings')
+            .leftJoinAndSelect('workshopevent.workshop', 'workshop')
             .orderBy('workshopevent.startsAt', 'ASC')
             .getManyAndCount()
             .then(([items, totalItems]) => ({
@@ -72,7 +74,7 @@ export class WorkshopEventService {
 
     /**
      * @description
-     * Find a single event by ID.
+     * Find a single workshop event by ID.
      */
     findOne(
         ctx: RequestContext,
@@ -81,23 +83,31 @@ export class WorkshopEventService {
     ): Promise<WorkshopEvent | null> {
         return this.connection.getRepository(ctx, WorkshopEvent).findOne({
             where: { id },
-            relations: relations ?? ['bookings'],
+            relations: relations ?? ['workshop'],
         });
     }
 
     /**
      * @description
-     * Create a new workshop event.
+     * Create a new workshop event scheduled from a Workshop template.
+     * `capacity` and `endsAt` are optional and, if omitted, are inherited
+     * from the Workshop template's `defaultCapacity` and
+     * `defaultDurationMinutes` respectively, so admins don't need to
+     * re-specify values that rarely change between occurrences.
      */
     async create(ctx: RequestContext, input: CreateWorkshopEventInput): Promise<WorkshopEvent> {
+        const workshop = await this.connection.getEntityOrThrow(ctx, Workshop, input.workshopId);
+        const startsAt = new Date(input.startsAt);
+        const endsAt = input.endsAt
+            ? new Date(input.endsAt)
+            : new Date(startsAt.getTime() + workshop.defaultDurationMinutes * 60_000);
         const newEntity = new WorkshopEvent({
-            title: input.title,
-            description: input.description ?? null,
+            workshop,
+            startsAt,
+            endsAt,
             location: input.location,
-            startsAt: new Date(input.startsAt),
-            endsAt: new Date(input.endsAt),
-            maxParticipants: input.maxParticipants,
-            bookingPassword: input.bookingPassword,
+            capacity: input.capacity ?? workshop.defaultCapacity,
+            priceInCents: input.priceInCents ?? null,
             isPublished: input.isPublished ?? true,
         });
         const savedEntity = await this.connection.getRepository(ctx, WorkshopEvent).save(newEntity);
@@ -110,8 +120,15 @@ export class WorkshopEventService {
      */
     async update(ctx: RequestContext, input: UpdateWorkshopEventInput): Promise<WorkshopEvent> {
         const entity = await this.connection.getEntityOrThrow(ctx, WorkshopEvent, input.id);
+        const workshop = input.workshopId
+            ? await this.connection.getEntityOrThrow(ctx, Workshop, input.workshopId)
+            : undefined;
         const updatedEntity = patchEntity(entity, {
-            ...input,
+            workshop,
+            location: input.location,
+            capacity: input.capacity,
+            priceInCents: input.priceInCents,
+            isPublished: input.isPublished,
             startsAt: input.startsAt ? new Date(input.startsAt) : undefined,
             endsAt: input.endsAt ? new Date(input.endsAt) : undefined,
         });
@@ -121,7 +138,7 @@ export class WorkshopEventService {
 
     /**
      * @description
-     * Delete a workshop event. This will also cascade-delete all bookings.
+     * Delete a workshop event.
      */
     async delete(ctx: RequestContext, id: ID): Promise<DeletionResponse> {
         const entity = await this.connection.getEntityOrThrow(ctx, WorkshopEvent, id);
@@ -136,24 +153,5 @@ export class WorkshopEventService {
                 message: e.toString(),
             };
         }
-    }
-
-    /**
-     * @description
-     * Get the count of current bookings for an event.
-     */
-    async getBookingCount(ctx: RequestContext, eventId: ID): Promise<number> {
-        const event = await this.findOne(ctx, eventId, ['bookings']);
-        return event?.bookings?.length ?? 0;
-    }
-
-    /**
-     * @description
-     * Check if an event has available slots.
-     */
-    async hasAvailableSlots(ctx: RequestContext, eventId: ID): Promise<boolean> {
-        const event = await this.findOne(ctx, eventId, ['bookings']);
-        if (!event) return false;
-        return (event.bookings?.length ?? 0) < event.maxParticipants;
     }
 }
