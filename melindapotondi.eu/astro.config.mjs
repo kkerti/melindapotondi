@@ -24,7 +24,12 @@ export default defineConfig({
     schema: {
       BREVO_API_KEY: envField.string({context: 'server', access: 'secret'}),
       BREVO_API_URL: envField.string({context: 'server', access: 'public'}),
-      VENDURE_SHOP_API_URL: envField.string({context: 'client', access: 'public'})
+      VENDURE_SHOP_API_URL: envField.string({context: 'client', access: 'public'}),
+      // Workshop ticket pages password gate (protects /workshops and /en/workshops).
+      // Toggle off to make the workshop pages fully public without a code change.
+      WORKSHOP_GATE_ENABLED: envField.boolean({context: 'server', access: 'public', default: true}),
+      WORKSHOP_GATE_PASSWORD: envField.string({context: 'server', access: 'secret'}),
+      WORKSHOP_GATE_COOKIE_SECRET: envField.string({context: 'server', access: 'secret'})
     }
   },
 

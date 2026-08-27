@@ -1,0 +1,58 @@
+---
+// Password gate entry page for the /workshops (and /en/workshops) section.
+// Deliberately lives OUTSIDE the /workshops prefix so src/middleware.ts's redirect
+// to this page never loops. Locale-agnostic single route (per the workshop-ticket
+// gate design) — the copy below is chosen from the `redirect` target's locale prefix
+// rather than duplicating this page under /en/.
+export const prerender = false;
+
+import Layout from '@layouts/Layout.astro';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@lib/components/ui/card';
+import WorkshopGateForm from '@components/forms/WorkshopGateForm.svelte';
+
+const redirectParam = Astro.url.searchParams.get('redirect') ?? '/workshops';
+const isEnglish = redirectParam === '/en' || redirectParam.startsWith('/en/');
+
+const copy = isEnglish
+  ? {
+      title: 'Workshops — private preview',
+      description:
+        'This section is password-protected while we soft-launch workshop tickets. Enter the 6-character password to continue.',
+      submit: 'Unlock',
+      submitting: 'Checking…',
+      errorIncorrect: 'Incorrect password. Please try again.',
+      errorNetwork: 'Something went wrong. Please try again.',
+    }
+  : {
+      title: 'Workshopok — privát előnézet',
+      description:
+        'Ez a rész jelszóval védett, amíg a workshop jegyértékesítést szűk körben teszteljük. Add meg a 6 karakteres jelszót a folytatáshoz.',
+      submit: 'Belépés',
+      submitting: 'Ellenőrzés…',
+      errorIncorrect: 'Helytelen jelszó. Próbáld újra.',
+      errorNetwork: 'Hiba történt. Próbáld újra.',
+    };
+---
+
+<Layout title={copy.title}>
+  <div class="flex min-h-[60vh] items-center justify-center px-4 py-12">
+    <Card class="w-full max-w-sm">
+      <CardHeader>
+        <CardTitle>{copy.title}</CardTitle>
+        <CardDescription>{copy.description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <WorkshopGateForm
+          client:load
+          redirectTo={redirectParam}
+          labels={{
+            submit: copy.submit,
+            submitting: copy.submitting,
+            errorIncorrect: copy.errorIncorrect,
+            errorNetwork: copy.errorNetwork,
+          }}
+        />
+      </CardContent>
+    </Card>
+  </div>
+</Layout>
