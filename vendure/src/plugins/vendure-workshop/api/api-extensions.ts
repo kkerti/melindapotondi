@@ -149,6 +149,7 @@ export const adminApiExtensions = gql`
         id: IDOperators
         createdAt: DateOperators
         updatedAt: DateOperators
+        workshopId: IDOperators
         startsAt: DateOperators
         endsAt: DateOperators
         location: StringOperators

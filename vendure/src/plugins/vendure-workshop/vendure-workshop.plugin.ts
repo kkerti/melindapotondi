@@ -54,6 +54,7 @@ import { conditionalShippingOrderProcess } from './config/conditional-shipping-o
     },
     compatibility: '^3.0.0',
     entities: [Workshop, WorkshopEvent],
+    dashboard: './dashboard/index.ts',
     adminApiExtensions: {
         schema: adminApiExtensions,
         resolvers: [WorkshopAdminResolver],

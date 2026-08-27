@@ -5,6 +5,7 @@
   "scripts": {
     "dev:server": "nodemon ./src/index.ts",
     "dev:worker": "nodemon ./src/index-worker.ts",
+    "dev:dashboard": "vite",
     "dev": "concurrently npm:dev:*",
     "build": "tsc",
     "start:server": "node ./dist/index.js",
