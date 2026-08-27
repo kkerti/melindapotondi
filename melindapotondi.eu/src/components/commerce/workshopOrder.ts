@@ -87,10 +87,20 @@ export async function addWorkshopTicketToOrder(productVariantId: string): Promis
 }
 
 /**
- * Sets the guest customer (email only, no name collected for v1) on the current
- * channel-scoped active order. Confirmed fine against DefaultGuestCheckoutStrategy.
+ * Sets the guest customer (email + first/last name, the latter needed for Barion's
+ * CardHolderNameHint) on the current channel-scoped active order.
+ *
+ * If the browser's session is already authenticated as a real Customer (e.g. from
+ * unrelated testing/browsing on the site), Vendure's DefaultGuestCheckoutStrategy refuses
+ * to also set a guest customer and returns ALREADY_LOGGED_IN_ERROR — but the order already
+ * has that logged-in customer attached, so this is treated as success rather than blocking
+ * the flow.
  */
-export async function setWorkshopOrderCustomer(email: string): Promise<WorkshopOrderResult> {
+export async function setWorkshopOrderCustomer(
+    email: string,
+    firstName: string,
+    lastName: string,
+): Promise<WorkshopOrderResult> {
     const result = await postWorkshopOrderRequest(
         `
             mutation SetWorkshopOrderCustomer($input: CreateCustomerInput!) {
@@ -106,7 +116,7 @@ export async function setWorkshopOrderCustomer(email: string): Promise<WorkshopO
                 }
             }
         `,
-        { input: { emailAddress: email, firstName: "", lastName: "" } },
+        { input: { emailAddress: email, firstName, lastName } },
     );
 
     if (result.errors) {
@@ -119,6 +129,9 @@ export async function setWorkshopOrderCustomer(email: string): Promise<WorkshopO
     const data = result.data?.setCustomerForOrder;
     if (data?.id) {
         return { success: true, orderId: data.id, orderCode: data.code };
+    }
+    if (data?.errorCode === "ALREADY_LOGGED_IN_ERROR") {
+        return { success: true, orderId: "", orderCode: "" };
     }
     return {
         success: false,

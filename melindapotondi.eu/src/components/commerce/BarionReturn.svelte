@@ -26,11 +26,16 @@
 
     async function checkOrderStatus() {
         if (!orderCode) return;
-
         try {
             const response = await fetch(VENDURE_SHOP_API_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Only the workshops channel is live right now, so this is hardcoded.
+                    // Once the physical-goods shop reopens, this needs to pick the right
+                    // channel token per order type instead of assuming "workshops".
+                    'vendure-token': 'workshops',
+                },
                 credentials: 'include',
                 body: JSON.stringify({
                     query: `
@@ -50,6 +55,7 @@
                     variables: { code: orderCode },
                 }),
             });
+
 
             const result = await response.json();
             const order = result.data?.orderByCode;

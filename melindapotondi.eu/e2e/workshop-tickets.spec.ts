@@ -185,7 +185,10 @@ test.describe('Workshop ticket purchase flow', () => {
     // — verified empirically. A short settle wait avoids that race.
     await page.waitForTimeout(3000);
 
-    // Fill in the email field and submit.
+    // Fill in the name + email fields and submit.
+    const [firstName, lastName] = BARION_TEST_CARD.name.split(' ');
+    await page.locator('#workshop-reserve-first-name').fill(firstName);
+    await page.locator('#workshop-reserve-last-name').fill(lastName);
     const emailInput = page.locator('#workshop-reserve-email');
     await emailInput.fill(BARION_TEST_CARD.emailAddress);
 

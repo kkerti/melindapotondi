@@ -21,16 +21,24 @@
   const { productVariantId, locale }: Props = $props();
 
   const schema = z.object({
+    firstName: z.string().trim().min(1),
+    lastName: z.string().trim().min(1),
     email: z.string().email(),
   });
 
   const LABELS = {
     hu: {
+      firstNameLabel: "Keresztnév",
+      firstNamePlaceholder: "Anna",
+      lastNameLabel: "Vezetéknév",
+      lastNamePlaceholder: "Kovács",
+      nameInvalid: "Add meg a neved.",
       emailLabel: "E-mail cím",
       emailPlaceholder: "te@example.com",
       emailInvalid: "Adj meg egy érvényes e-mail címet.",
       submit: "Tovább a fizetéshez",
       submitting: "Feldolgozás...",
+      redirecting: "Átirányítás a Barionhoz...",
       policyButton: "Feltételek",
       policyTitle: "Foglalási feltételek",
       policyBody: [
@@ -44,11 +52,17 @@
       paymentError: "Nem sikerült elindítani a fizetést. Kérjük, próbáld újra.",
     },
     en: {
+      firstNameLabel: "First name",
+      firstNamePlaceholder: "Anna",
+      lastNameLabel: "Last name",
+      lastNamePlaceholder: "Smith",
+      nameInvalid: "Please enter your name.",
       emailLabel: "Email address",
       emailPlaceholder: "you@example.com",
       emailInvalid: "Please enter a valid email address.",
       submit: "Continue to payment",
       submitting: "Processing...",
+      redirecting: "Redirecting to Barion...",
       policyButton: "Policy",
       policyTitle: "Booking policy",
       policyBody: [
@@ -65,10 +79,17 @@
 
   const t = LABELS[locale];
 
+  let firstName = $state("");
+  let lastName = $state("");
   let email = $state("");
+  let nameError = $state<string | null>(null);
   let emailError = $state<string | null>(null);
   let formError = $state<string | null>(null);
   let submitting = $state(false);
+  // Set right before redirectToBarion and never reset — window.location.href navigation
+  // doesn't stop script execution, so without this the button would briefly re-enable
+  // (and revert to its normal label) while the browser is still loading the Barion page.
+  let redirecting = $state(false);
   let policyOpen = $state(false);
 
   // Tracks whether addWorkshopTicketToOrder already succeeded, so a retry after a later
@@ -79,14 +100,21 @@
 
   async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
-    if (submitting) return;
+    if (submitting || redirecting) return;
 
+    nameError = null;
     emailError = null;
     formError = null;
 
-    const result = schema.safeParse({ email });
+    const result = schema.safeParse({ firstName, lastName, email });
     if (!result.success) {
-      emailError = t.emailInvalid;
+      const fieldErrors = result.error.flatten().fieldErrors;
+      if (fieldErrors.firstName || fieldErrors.lastName) {
+        nameError = t.nameInvalid;
+      }
+      if (fieldErrors.email) {
+        emailError = t.emailInvalid;
+      }
       return;
     }
 
@@ -104,7 +132,11 @@
         orderAdded = true;
       }
 
-      const customerResult = await setWorkshopOrderCustomer(result.data.email);
+      const customerResult = await setWorkshopOrderCustomer(
+        result.data.email,
+        result.data.firstName,
+        result.data.lastName,
+      );
       if (!customerResult.success) {
         formError = customerResult.message || t.genericError;
         return;
@@ -112,6 +144,7 @@
 
       const paymentResult = await initiateWorkshopTicketPayment();
       if (paymentResult.success && paymentResult.gatewayUrl) {
+        redirecting = true;
         redirectToBarion(paymentResult.gatewayUrl);
         return;
       }
@@ -120,7 +153,9 @@
       console.error("Workshop reserve flow failed", err);
       formError = t.genericError;
     } finally {
-      submitting = false;
+      if (!redirecting) {
+        submitting = false;
+      }
     }
   }
 </script>
@@ -130,6 +165,34 @@
     <div class="text-sm text-destructive" role="alert">{formError}</div>
   {/if}
 
+  <div class="grid grid-cols-2 gap-3">
+    <div class="space-y-1.5">
+      <Label for="workshop-reserve-first-name">{t.firstNameLabel}</Label>
+      <Input
+        id="workshop-reserve-first-name"
+        type="text"
+        placeholder={t.firstNamePlaceholder}
+        bind:value={firstName}
+        disabled={submitting || redirecting}
+        aria-invalid={nameError ? "true" : undefined}
+      />
+    </div>
+    <div class="space-y-1.5">
+      <Label for="workshop-reserve-last-name">{t.lastNameLabel}</Label>
+      <Input
+        id="workshop-reserve-last-name"
+        type="text"
+        placeholder={t.lastNamePlaceholder}
+        bind:value={lastName}
+        disabled={submitting || redirecting}
+        aria-invalid={nameError ? "true" : undefined}
+      />
+    </div>
+  </div>
+  {#if nameError}
+    <p class="text-sm text-destructive">{nameError}</p>
+  {/if}
+
   <div class="space-y-1.5">
     <Label for="workshop-reserve-email">{t.emailLabel}</Label>
     <Input
@@ -137,7 +200,7 @@
       type="email"
       placeholder={t.emailPlaceholder}
       bind:value={email}
-      disabled={submitting}
+      disabled={submitting || redirecting}
       aria-invalid={emailError ? "true" : undefined}
     />
     {#if emailError}
@@ -163,7 +226,7 @@
     </DialogContent>
   </Dialog>
 
-  <Button type="submit" class="w-full" disabled={submitting}>
-    {submitting ? t.submitting : t.submit}
+  <Button type="submit" class="w-full" disabled={submitting || redirecting}>
+    {redirecting ? t.redirecting : submitting ? t.submitting : t.submit}
   </Button>
 </form>
