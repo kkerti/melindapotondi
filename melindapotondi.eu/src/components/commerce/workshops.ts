@@ -19,6 +19,13 @@ export interface WorkshopEventDto {
     };
 }
 
+/** Single-event lookup result. Includes the auto-provisioned Product/ProductVariant ids
+ * needed to add a ticket to an order, which the list query above doesn't request. */
+export interface WorkshopEventDetailDto extends WorkshopEventDto {
+    productId: string | null;
+    productVariantId: string | null;
+}
+
 /**
  * Fetches published WorkshopEvents starting in [from, to] from the `workshops` Vendure
  * Channel (never the storefront's default channel) via the `vendure-token` header.
@@ -69,4 +76,56 @@ export async function getWorkshopEventsInRange(from: Date, to: Date): Promise<Wo
     }
     console.error("getWorkshopEventsInRange failed", result.errors ?? result);
     return [];
+}
+
+/**
+ * Fetches a single WorkshopEvent by id from the `workshops` Vendure Channel, for the
+ * reserve/checkout page. The shop API's `workshopEvent` query already returns null for
+ * unpublished events server-side, but callers should still treat a falsy `isPublished`
+ * on whatever comes back as "not found" too (belt-and-suspenders).
+ *
+ * Same read-only-catalog-query reasoning as `getWorkshopEventsInRange` above: no
+ * cart/session involved, so `credentials: 'include'` is deliberately omitted.
+ */
+export async function getWorkshopEvent(id: string): Promise<WorkshopEventDetailDto | null> {
+    const response = await fetch(VENDURE_SHOP_API_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "vendure-token": "workshops",
+        },
+        body: JSON.stringify({
+            query: `
+                query WorkshopEvent($id: ID!) {
+                    workshopEvent(id: $id) {
+                        id
+                        startsAt
+                        endsAt
+                        location
+                        capacity
+                        priceInCents
+                        isPublished
+                        availableSeats
+                        isSoldOut
+                        productId
+                        productVariantId
+                        workshop {
+                            id
+                            title
+                            description
+                            defaultPriceInCents
+                        }
+                    }
+                }
+            `,
+            variables: { id },
+        }),
+    });
+
+    const result = await response.json();
+    if (result.errors) {
+        console.error("getWorkshopEvent failed", result.errors);
+        return null;
+    }
+    return result.data?.workshopEvent ?? null;
 }

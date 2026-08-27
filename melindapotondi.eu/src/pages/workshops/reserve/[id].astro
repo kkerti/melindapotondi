@@ -1,0 +1,98 @@
+---
+// Ticket reservation page for a single WorkshopEvent, linked from the "Foglalás" button
+// on /workshops. Protected by the same password gate as the rest of /workshops (see
+// src/middleware.ts) since it lives under that path prefix.
+export const prerender = false;
+
+import Layout from '@layouts/Layout.astro';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@lib/components/ui/card';
+import WorkshopReserveForm from '@components/commerce/WorkshopReserveForm.svelte';
+import { getWorkshopEvent } from '@components/commerce/workshops';
+
+const BUDAPEST_TZ = 'Europe/Budapest';
+
+const { id } = Astro.params;
+const rawEvent = id ? await getWorkshopEvent(id) : null;
+// The shop API's workshopEvent query already returns null for unpublished events, but
+// double-check isPublished ourselves too (belt-and-suspenders) rather than trusting that
+// alone. Events missing a provisioned productVariantId can't be reserved either — treat
+// that the same as "not found" rather than rendering a form that would just error.
+const event = rawEvent && rawEvent.isPublished && rawEvent.productVariantId ? rawEvent : null;
+
+if (!event) {
+  Astro.response.status = 404;
+}
+
+function formatDateTime(startsAt: string, endsAt: string): string {
+  const dateFmt = new Intl.DateTimeFormat('hu-HU', {
+    timeZone: BUDAPEST_TZ,
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  const timeFmt = new Intl.DateTimeFormat('hu-HU', {
+    timeZone: BUDAPEST_TZ,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  return `${dateFmt.format(new Date(startsAt))}, ${timeFmt.format(new Date(startsAt))}–${timeFmt.format(new Date(endsAt))}`;
+}
+
+function formatPrice(cents: number): string {
+  return new Intl.NumberFormat('hu-HU', {
+    style: 'currency',
+    currency: 'HUF',
+    maximumFractionDigits: 0,
+  }).format(cents / 100);
+}
+
+const priceInCents = event ? (event.priceInCents ?? event.workshop.defaultPriceInCents) : 0;
+const formattedDateTime = event ? formatDateTime(event.startsAt, event.endsAt) : '';
+const formattedPrice = event ? formatPrice(priceInCents) : '';
+const pageTitle = event ? `${event.workshop.title} — Foglalás — Melinda Potondi` : 'Workshop nem található — Melinda Potondi';
+---
+
+<Layout title={pageTitle}>
+  <div class="max-w-lg mx-auto px-4 py-16">
+    {!event ? (
+      <div class="space-y-4 text-center">
+        <h1 class="text-2xl font-bold">A workshop nem található.</h1>
+        <p class="text-muted-foreground">Ez a workshop nem létezik, vagy már nem érhető el.</p>
+        <a href="/workshops" class="text-primary underline">Vissza a workshopokhoz</a>
+      </div>
+    ) : (
+      <div class="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>{event.workshop.title}</CardTitle>
+            <CardDescription>
+              {formattedDateTime} &middot; Helyszín: {event.location}
+            </CardDescription>
+          </CardHeader>
+          <CardContent class="space-y-3">
+            {event.workshop.description && (
+              <p class="text-sm text-muted-foreground">{event.workshop.description}</p>
+            )}
+            <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
+              <span class="font-medium">{formattedPrice}</span>
+              <span class={event.isSoldOut ? 'text-destructive' : 'text-muted-foreground'}>
+                {event.isSoldOut ? 'Betelt' : `${event.availableSeats} / ${event.capacity} hely szabad`}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {event.isSoldOut ? (
+          <div class="space-y-2 text-center">
+            <p class="font-medium text-destructive">Ez az időpont sajnos betelt.</p>
+            <a href="/workshops" class="text-primary underline">Nézz szét más időpontok között</a>
+          </div>
+        ) : (
+          <WorkshopReserveForm client:load productVariantId={event.productVariantId!} locale="hu" />
+        )}
+      </div>
+    )}
+  </div>
+</Layout>
