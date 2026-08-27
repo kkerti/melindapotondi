@@ -1,12 +1,17 @@
 /**
- * One-off admin script: creates (idempotently) a dedicated `workshops` Channel
- * and assigns the existing `barion` PaymentMethod to it.
+ * One-off admin script: creates (idempotently) a dedicated `workshops` Channel,
+ * assigns the existing `barion` PaymentMethod to it, and assigns the default
+ * channel's StockLocation(s) to it.
  *
  * Why: workshop-ticket Products/ProductVariants are assigned to this Channel
  * instead of the default channel, so they never show up in the default
  * storefront's catalog/search while remaining fully purchasable (via the
  * `workshops` channel token). For orders placed in that channel to be payable,
- * the Barion PaymentMethod must also be assigned to it.
+ * the Barion PaymentMethod must also be assigned to it. And because this app
+ * uses Vendure's default `MultiChannelStockLocationStrategy`, a Channel only
+ * sees stock held in a StockLocation that is itself assigned to that Channel —
+ * so the `workshops` channel must also share the default channel's
+ * StockLocation(s), or every ticket variant's saleable stock reads as 0.
  *
  * This script deliberately does NOT touch anything workshop-plugin-related
  * (no WorkshopService/WorkshopEventService, no `workshop`/`workshop_event`
@@ -32,6 +37,7 @@ import {
     PaymentMethodService,
     RequestContextService,
     RoleService,
+    StockLocationService,
     TransactionalConnection,
     User,
 } from '@vendure/core';
@@ -50,6 +56,7 @@ async function main() {
         const channelService = app.get(ChannelService);
         const paymentMethodService = app.get(PaymentMethodService);
         const roleService = app.get(RoleService);
+        const stockLocationService = app.get(StockLocationService);
         const configService = app.get(ConfigService);
         const connection = app.get(TransactionalConnection);
 
@@ -169,7 +176,61 @@ async function main() {
             );
         }
 
-        // Step 7: final summary.
+        // Step 7: assign the default channel's StockLocation(s) to the workshops channel.
+        //
+        // Why: this app uses Vendure's default `MultiChannelStockLocationStrategy`
+        // (the 3.1+ default). Under it, `ProductVariantService.getSaleableStockLevel()`
+        // only counts stock as available in a Channel if the StockLocation holding that
+        // stock is itself assigned to that Channel (see
+        // `MultiChannelStockLocationStrategy.stockLevelAppliesToActiveChannel` in
+        // @vendure/core, which checks `stockLocation.channels` for `ctx.channelId`).
+        // Without this, every ticket product's saleable stock reads as 0 in the
+        // `workshops` channel even though `stock_level.stockOnHand` is correct — and real
+        // stock allocation at checkout would be blocked too. This is not a stock-isolation
+        // decision: per this project's settled architecture, physical/tracked stock is per
+        // ProductVariant regardless of channel, so `workshops` should simply share the same
+        // StockLocation(s) as the default channel — exactly like a normal Vendure
+        // multi-channel storefront setup sharing one warehouse across channels.
+        //
+        // `ctx` was built via `requestContextService.create({ apiType: 'admin', user })`
+        // with no `channelOrToken`, which resolves to the default Channel (see
+        // `RequestContextService.create`). `StockLocationService.findAll` scopes its
+        // results to `ctx.channelId`, so this call returns exactly the StockLocation(s)
+        // already assigned to the default channel (normally just the single
+        // auto-created "Default Stock Location").
+        const defaultChannelStockLocations = await stockLocationService.findAll(ctx, { take: 1000 }, ['channels']);
+
+        if (defaultChannelStockLocations.items.length === 0) {
+            console.error(
+                'ERROR: No StockLocation is assigned to the default channel. Expected at least one ' +
+                    '(Vendure auto-creates a "Default Stock Location" on bootstrap). Aborting.',
+            );
+            process.exit(1);
+            return;
+        }
+
+        const unassignedStockLocations = defaultChannelStockLocations.items.filter(
+            sl => !sl.channels?.some(c => c.id === workshopsChannel!.id),
+        );
+
+        if (unassignedStockLocations.length === 0) {
+            console.log(
+                `All ${defaultChannelStockLocations.items.length} default-channel StockLocation(s) ` +
+                    `(${defaultChannelStockLocations.items.map(sl => sl.name).join(', ')}) are already assigned ` +
+                    `to channel "${workshopsChannel.token}" — skipping assignment.`,
+            );
+        } else {
+            await stockLocationService.assignStockLocationsToChannel(ctx, {
+                channelId: workshopsChannel.id,
+                stockLocationIds: unassignedStockLocations.map(sl => sl.id),
+            });
+            console.log(
+                `Assigned StockLocation(s) [${unassignedStockLocations.map(sl => `${sl.name} (id=${sl.id})`).join(', ')}] ` +
+                    `to channel "${workshopsChannel.token}" (id=${workshopsChannel.id}).`,
+            );
+        }
+
+        // Step 8: final summary.
         console.log('\n=== Summary ===');
         console.log(
             `Channel: id=${workshopsChannel.id} token=${workshopsChannel.token} code=${workshopsChannel.code} (${channelCreated ? 'created new' : 'already existed'})`,
@@ -177,8 +238,12 @@ async function main() {
         console.log(
             `PaymentMethod: id=${barionPaymentMethod.id} code=${barionPaymentMethod.code} (${alreadyAssigned ? 'assignment already existed' : 'assignment created'})`,
         );
+        console.log(
+            `StockLocation(s): [${defaultChannelStockLocations.items.map(sl => `${sl.name} (id=${sl.id})`).join(', ')}] ` +
+                `(${unassignedStockLocations.length === 0 ? 'assignment already existed' : 'assignment created'})`,
+        );
     } finally {
-        // Step 8: bootstrap() starts the HTTP listener; make sure the script exits cleanly.
+        // Step 9: bootstrap() starts the HTTP listener; make sure the script exits cleanly.
         await app.close();
     }
 }
