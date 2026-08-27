@@ -3,33 +3,31 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev:server": "nodemon ./src/index.ts",
-    "dev:worker": "nodemon ./src/index-worker.ts",
-    "dev:dashboard": "vite",
-    "dev": "concurrently npm:dev:*",
-    "build": "tsc",
+    "dev:server": "vendure dev server",
+    "dev:worker": "vendure dev worker",
+    "dev:dashboard": "vendure dev dashboard",
+    "dev": "vendure dev all",
+    "build": "vendure build all",
+    "build:server": "vendure build server",
+    "build:worker": "vendure build worker",
+    "build:dashboard": "vendure build dashboard",
     "start:server": "node ./dist/index.js",
     "start:worker": "node ./dist/index-worker.js",
-    "start": "concurrently npm:start:*",
-    "codegen": "graphql-codegen --config codegen.ts"
+    "start": "vendure start all"
   },
   "dependencies": {
-    "@vendure/admin-ui-plugin": "3.4.4",
-    "@vendure/asset-server-plugin": "3.4.4",
-    "@vendure/core": "3.4.4",
-    "@vendure/dashboard": "^3.4.4",
-    "@vendure/email-plugin": "3.4.4",
-    "@vendure/graphiql-plugin": "3.4.4",
-    "dotenv": "17.2.3",
-    "pg": "8.16.3"
+    "@vendure/asset-server-plugin": "3.7.2",
+    "@vendure/core": "3.7.2",
+    "@vendure/dashboard": "3.7.2",
+    "@vendure/email-plugin": "3.7.2",
+    "@vendure/graphiql-plugin": "3.7.2",
+    "dotenv": "17.4.2",
+    "pg": "8.23.0"
   },
   "devDependencies": {
-    "@graphql-codegen/cli": "6.1.0",
-    "@graphql-codegen/typescript": "5.0.6",
-    "@vendure/cli": "3.4.4",
-    "@vendure/testing": "^3.5.2",
-    "concurrently": "9.2.1",
-    "nodemon": "^3.1.11",
-    "typescript": "5.8.2"
+    "@vendure/cli": "3.7.2",
+    "ts-node": "10.9.2",
+    "typescript": "5.8.2",
+    "vite": "7.3.6"
   }
 }

@@ -5,19 +5,61 @@ import {
     DefaultSearchPlugin,
     VendureConfig,
     DefaultGuestCheckoutStrategy,
-    DefaultOrderByCodeAccessStrategy,
+    OrderByCodeAccessStrategy,
+    RequestContext,
+    Order,
 } from '@vendure/core';
 import { defaultEmailHandlers, EmailPlugin, FileBasedTemplateLoader } from '@vendure/email-plugin';
 import { AssetServerPlugin } from '@vendure/asset-server-plugin';
-import { AdminUiPlugin } from '@vendure/admin-ui-plugin';
 import { GraphiqlPlugin } from '@vendure/graphiql-plugin';
 import 'dotenv/config';
 import path from 'path';
 import { VendureBarionPlugin } from './plugins/vendure-barion/vendure-barion.plugin';
 import { VendureWorkshopPlugin } from './plugins/vendure-workshop/vendure-workshop.plugin';
+import { DashboardPlugin } from '@vendure/dashboard/plugin';
 
 const IS_DEV = process.env.APP_ENV === 'dev';
 const serverPort = +process.env.PORT || 3000;
+
+/**
+ * Grants access to a placed Order via its code to any requester within a
+ * time window after the Order was placed, regardless of whether they are
+ * logged in.
+ *
+ * The default DefaultOrderByCodeAccessStrategy only grants anonymous sessions
+ * time-windowed access; an authenticated session that is not the Order's owner
+ * is always denied. For guest checkouts (the Order has no owning user account)
+ * that means the checkout return page is denied whenever the browser is logged
+ * in. Treating the order code as the access secret and only enforcing the
+ * time window keeps the intended "30 days" semantics while letting the return
+ * page resolve the payment status for both anonymous and authenticated clients.
+ */
+class OrderByCodeWindowAccessStrategy implements OrderByCodeAccessStrategy {
+    private readonly ttlMs: number;
+    constructor(ttl: string) {
+        this.ttlMs = this.parseTtl(ttl);
+    }
+    canAccessOrder(ctx: RequestContext, order: Order): boolean {
+        const orderPlaced = order.orderPlacedAt ? +order.orderPlacedAt : 0;
+        return orderPlaced > 0 && Date.now() - orderPlaced < this.ttlMs;
+    }
+    private parseTtl(ttl: string): number {
+        const match = /^(\d+)(ms|s|m|h|d)$/.exec(ttl.trim());
+        if (!match) {
+            throw new Error(`Invalid TTL "${ttl}" for OrderByCodeWindowAccessStrategy`);
+        }
+        const value = +match[1];
+        const unit = match[2];
+        const multipliers: Record<string, number> = {
+            ms: 1,
+            s: 1000,
+            m: 60_000,
+            h: 3_600_000,
+            d: 86_400_000,
+        };
+        return value * multipliers[unit];
+    }
+}
 
 export const config: VendureConfig = {
     apiOptions: {
@@ -45,7 +87,7 @@ export const config: VendureConfig = {
     },
     orderOptions: {
         guestCheckoutStrategy: new DefaultGuestCheckoutStrategy(),
-        orderByCodeAccessStrategy: new DefaultOrderByCodeAccessStrategy('30d')
+        orderByCodeAccessStrategy: new OrderByCodeWindowAccessStrategy('30d'),
     },
     dbConnectionOptions: {
         type: 'postgres',
@@ -95,12 +137,11 @@ export const config: VendureConfig = {
                 changeEmailAddressUrl: 'http://localhost:8080/verify-email-address-change'
             },
         }),
-        AdminUiPlugin.init({
-            route: 'admin',
-            port: serverPort + 2,
-            adminUiConfig: {
-                apiPort: serverPort,
-            },
+        DashboardPlugin.init({
+            route: 'dashboard',
+            appDir: IS_DEV
+                ? path.join(__dirname, '../dist/dashboard')
+                : path.join(__dirname, 'dashboard'),
         }),
         VendureBarionPlugin.init({
             posKey: process.env.BARION_POS_KEY || '',
@@ -110,5 +151,6 @@ export const config: VendureConfig = {
             sandbox: process.env.BARION_SANDBOX === 'true',
         }),
         VendureWorkshopPlugin.init({}),
+
     ],
 };

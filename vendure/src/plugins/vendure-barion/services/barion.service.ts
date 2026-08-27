@@ -83,9 +83,15 @@ export class BarionService {
         // Determine locale from context
         const locale = this.mapLocale(ctx.languageCode);
 
+        const cardHolderName = [order.customer?.firstName, order.customer?.lastName]
+            .filter(Boolean)
+            .join(' ');
+
         // Build the payment request
         const request: BarionPaymentStartRequest = {
             POSKey: this.options.posKey,
+            PayerHint: order.customer?.emailAddress,
+            CardHolderNameHint: cardHolderName || undefined,
             PaymentType: PaymentType.IMMEDIATE,
             GuestCheckOut: true,
             FundingSources: ['All'],
@@ -111,8 +117,6 @@ export class BarionService {
             });
 
             const data = await response.json();
-
-            console.log(data);
 
             if (isBarionError(data)) {
                 const errorMsg = data.Errors.map(e => `${e.ErrorCode}: ${e.Description}`).join(', ');

@@ -1,13 +1,13 @@
-# melindapotondi
+# vendure
 
-This project was generated with [`@vendure/create`](https://github.com/vendure-ecommerce/vendure/tree/master/packages/create).
+This project was generated with [`@vendure/create`](https://github.com/vendurehq/vendure/tree/master/packages/create).
 
 Useful links:
 
 - [Vendure docs](https://www.vendure.io/docs)
 - [Vendure Discord community](https://www.vendure.io/community)
-- [Vendure on GitHub](https://github.com/vendure-ecommerce/vendure)
-- [Vendure plugin template](https://github.com/vendure-ecommerce/plugin-template)
+- [Vendure on GitHub](https://github.com/vendurehq/vendure)
+- [Vendure plugin template](https://github.com/vendurehq/plugin-template)
 
 ## Directory structure
 
@@ -20,8 +20,7 @@ Useful links:
 npm run dev
 ```
 
-will start the Vendure server and [worker](https://www.vendure.io/docs/developer-guide/vendure-worker/) processes from
-the `src` directory.
+will start the Vendure server, [worker](https://www.vendure.io/docs/developer-guide/vendure-worker/) and Dashboard.
 
 ## Build
 
@@ -29,7 +28,7 @@ the `src` directory.
 npm run build
 ```
 
-will compile the TypeScript sources into the `/dist` directory.
+will compile the TypeScript sources and build the Dashboard into the `/dist` directory.
 
 ## Production
 
@@ -144,4 +143,3 @@ You can also run any pending migrations manually, without starting the server vi
 - Make sure your Node version is ^18.17.0 || ^20.3.0 || >=21.0.0 to support the Sharp library.
 - Make sure your package manager is up to date.
 - **Not recommended**: if none of the above helps to resolve the issue, install sharp specifying your machines OS and Architecture. For example: `pnpm install sharp --config.platform=linux --config.architecture=x64` or `npm install sharp --os linux --cpu x64`
-

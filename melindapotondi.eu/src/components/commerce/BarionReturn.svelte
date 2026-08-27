@@ -4,14 +4,18 @@
 
     interface Props {
         orderCode: string | null;
+        barionPaymentId: string | null;
     }
 
-    let { orderCode }: Props = $props();
+    let { orderCode, barionPaymentId }: Props = $props();
 
     type PaymentState = 'loading' | 'success' | 'pending' | 'error';
-    
+
     let state = $state<PaymentState>('loading');
     let errorMessage = $state('There was an issue with your payment.');
+
+    const maxAttempts = 30;
+    let attempts = 0;
 
     onMount(() => {
         if (!orderCode) {
@@ -26,6 +30,7 @@
 
     async function checkOrderStatus() {
         if (!orderCode) return;
+        attempts += 1;
         try {
             const response = await fetch(VENDURE_SHOP_API_URL, {
                 method: 'POST',
@@ -48,6 +53,7 @@
                                     id
                                     state
                                     method
+                                    transactionId
                                 }
                             }
                         }
@@ -56,35 +62,57 @@
                 }),
             });
 
-
             const result = await response.json();
+
+            console.log(result);
+
+            if (result.errors?.length) {
+                scheduleRetry();
+                return;
+            }
+
             const order = result.data?.orderByCode;
 
             if (!order) {
                 // Order not found yet, keep polling
-                setTimeout(checkOrderStatus, 2000);
+                scheduleRetry();
                 return;
             }
 
-            // Check payment status
-            const barionPayment = order.payments?.find((p: { method: string }) => p.method === 'barion');
+            // Check payment status.
+            // Prefer the payment that matches the PaymentId Barion returned in the URL,
+            // otherwise fall back to the most recent barion payment on the order.
+            const barionPayments = order.payments?.filter((p: { method: string }) => p.method === 'barion') ?? [];
+            const barionPayment =
+                (barionPaymentId
+                    ? barionPayments.find((p: { transactionId: string }) => p.transactionId === barionPaymentId)
+                    : undefined) ?? barionPayments[barionPayments.length - 1];
 
-            if (barionPayment?.state === 'Settled') {
+            if (!barionPayment) {
+                scheduleRetry();
+            } else if (barionPayment.state === 'Settled') {
                 state = 'success';
-            } else if (barionPayment?.state === 'Authorized') {
-                // Payment authorized but not yet settled (waiting for webhook)
-                state = 'pending';
-            } else if (barionPayment?.state === 'Error' || barionPayment?.state === 'Declined') {
+            } else if (barionPayment.state === 'Error' || barionPayment.state === 'Declined') {
                 state = 'error';
                 errorMessage = 'Your payment was declined or failed.';
             } else {
-                // Keep polling for a while
-                setTimeout(checkOrderStatus, 2000);
+                // Payment authorized but not yet settled (waiting for the Barion webhook).
+                // Keep polling so the page resolves once the payment is settled,
+                // even if the webhook arrives (or is settled by an admin) after page load.
+                scheduleRetry();
             }
         } catch (error) {
             console.error('Error checking order status:', error);
             state = 'error';
             errorMessage = 'Failed to check payment status';
+        }
+    }
+
+    function scheduleRetry() {
+        if (attempts < maxAttempts) {
+            setTimeout(checkOrderStatus, 2000);
+        } else {
+            state = 'pending';
         }
     }
 </script>
