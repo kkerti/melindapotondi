@@ -39,7 +39,17 @@ export class WorkshopEventService {
 
     /**
      * @description
-     * Returns a paginated list of all workshop events (admin).
+     * Returns a paginated list of all workshop events (admin). Used by the dashboard's nested
+     * WorkshopEvent list on a Workshop's detail page to scope results to that Workshop via the
+     * `workshopId` filter.
+     *
+     * `workshopId` is not a plain `@Column` on the entity - it's the implicit join column TypeORM
+     * generates for the `workshop` `@ManyToOne` relation, which does NOT show up in
+     * `EntityMetadata.columns` (confirmed live: filtering on it without this map throws
+     * `error.invalid-filter-field`, even though the GraphQL schema itself declares the field).
+     * `customPropertyMap` is Vendure's documented mechanism for exactly this case - mapping a
+     * schema-level filter/sort field to a related entity's property - and only joins `workshop`
+     * when `workshopId` is actually used in the query's filter/sort.
      */
     findAll(
         ctx: RequestContext,
@@ -50,6 +60,9 @@ export class WorkshopEventService {
             .build(WorkshopEvent, options, {
                 relations,
                 ctx,
+                customPropertyMap: {
+                    workshopId: 'workshop.id',
+                },
             })
             .getManyAndCount()
             .then(([items, totalItems]) => ({
