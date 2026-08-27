@@ -1,16 +1,27 @@
 ---
-// Placeholder for the workshop-ticket-purchase section, protected by the password
-// gate in src/middleware.ts. Task 12 replaces this with the real calendar/reserve UI.
+// Real workshop calendar/date-picker page, protected by the password gate in
+// src/middleware.ts. Replaces the placeholder that used to live here.
 export const prerender = false;
 
 import Layout from '@layouts/Layout.astro';
+import WorkshopCalendar from '@components/commerce/WorkshopCalendar.svelte';
+import { getWorkshopEventsInRange } from '@components/commerce/workshops';
+
+// Today through +6 months: a sensible default window for a small workshop
+// business's real event volume.
+const from = new Date();
+const to = new Date(from);
+to.setMonth(to.getMonth() + 6);
+
+const events = await getWorkshopEventsInRange(from, to);
 ---
 
-<Layout title="Workshopok — hamarosan">
-  <div class="max-w-3xl mx-auto px-4 py-16 text-center">
-    <h1 class="text-3xl font-bold py-2">Workshopok — hamarosan</h1>
-    <p class="py-2 text-muted-foreground">
-      Ez egy ideiglenes helyőrző oldal. A workshop naptár és jegyfoglalás hamarosan elérhető lesz itt.
+<Layout title="Workshopok — Melinda Potondi">
+  <div class="max-w-5xl mx-auto px-4 py-16">
+    <h1 class="text-3xl font-bold py-2 text-center">Workshopok</h1>
+    <p class="py-2 text-muted-foreground text-center mb-8">
+      Válassz ki egy kiemelt dátumot a naptárban, és foglalj helyet egy közelgő kerámia workshopon.
     </p>
+    <WorkshopCalendar client:load events={events} locale="hu" />
   </div>
 </Layout>
