@@ -218,6 +218,20 @@ export const adminApiExtensions = gql`
 export const shopApiExtensions = gql`
     ${commonApiExtensions}
 
+    extend type WorkshopEvent {
+        """
+        The number of seats still available for this event, derived from the real saleable
+        stock level of the underlying ProductVariant (i.e. capacity minus seats already
+        allocated to other Orders) rather than the raw capacity field.
+        """
+        availableSeats: Int!
+
+        """
+        True once availableSeats reaches zero.
+        """
+        isSoldOut: Boolean!
+    }
+
     input UpcomingWorkshopEventsOptions {
         skip: Int
         take: Int
@@ -225,9 +239,17 @@ export const shopApiExtensions = gql`
 
     extend type Query {
         """
-        Get upcoming, published workshop events
+        Get upcoming, published workshop events, ordered by start date. Intended for
+        bounded "next N events" widgets - for a calendar-style date range view, use
+        workshopEventsInRange instead.
         """
         upcomingWorkshopEvents(options: UpcomingWorkshopEventsOptions): WorkshopEventList!
+
+        """
+        Get published workshop events starting between from and to (inclusive), ordered by
+        start date. Powers a calendar-style storefront view of a given day/week/month.
+        """
+        workshopEventsInRange(from: DateTime!, to: DateTime!): [WorkshopEvent!]!
 
         """
         Get a single published workshop event by ID

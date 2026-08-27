@@ -1,4 +1,4 @@
-import { Args, Query, Resolver } from '@nestjs/graphql';
+import { Args, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
 import { Ctx, ID, RequestContext } from '@vendure/core';
 import { WorkshopEvent } from '../entities/workshop-event.entity';
 import { Workshop } from '../entities/workshop.entity';
@@ -10,7 +10,12 @@ interface UpcomingWorkshopEventsOptions {
     take?: number;
 }
 
-@Resolver()
+interface WorkshopEventsInRangeArgs {
+    from: Date;
+    to: Date;
+}
+
+@Resolver('WorkshopEvent')
 export class WorkshopShopResolver {
     constructor(
         private workshopService: WorkshopService,
@@ -23,6 +28,14 @@ export class WorkshopShopResolver {
         @Args() args: { options?: UpcomingWorkshopEventsOptions },
     ) {
         return this.workshopEventService.findUpcoming(ctx, args.options);
+    }
+
+    @Query()
+    async workshopEventsInRange(
+        @Ctx() ctx: RequestContext,
+        @Args() args: WorkshopEventsInRangeArgs,
+    ): Promise<WorkshopEvent[]> {
+        return this.workshopEventService.findInRange(ctx, new Date(args.from), new Date(args.to));
     }
 
     @Query()
@@ -46,5 +59,17 @@ export class WorkshopShopResolver {
             return null;
         }
         return workshop;
+    }
+
+    @ResolveField()
+    async availableSeats(@Ctx() ctx: RequestContext, @Parent() event: WorkshopEvent): Promise<number> {
+        const saleable = await this.workshopEventService.getSaleableSeats(ctx, event);
+        return Math.max(saleable, 0);
+    }
+
+    @ResolveField()
+    async isSoldOut(@Ctx() ctx: RequestContext, @Parent() event: WorkshopEvent): Promise<boolean> {
+        const saleable = await this.workshopEventService.getSaleableSeats(ctx, event);
+        return saleable <= 0;
     }
 }

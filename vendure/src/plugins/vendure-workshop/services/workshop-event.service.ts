@@ -14,10 +14,11 @@ import {
     ProductVariantService,
     RelationPaths,
     RequestContext,
+    RequestContextCacheService,
     TaxCategoryService,
     TransactionalConnection,
 } from '@vendure/core';
-import { MoreThanOrEqual } from 'typeorm';
+import { Between, MoreThanOrEqual } from 'typeorm';
 import { loggerCtx, VENDURE_WORKSHOP_PLUGIN_OPTIONS, WORKSHOPS_CHANNEL_TOKEN } from '../constants';
 import { WorkshopEvent } from '../entities/workshop-event.entity';
 import { Workshop } from '../entities/workshop.entity';
@@ -32,6 +33,7 @@ export class WorkshopEventService {
         private productService: ProductService,
         private productVariantService: ProductVariantService,
         private taxCategoryService: TaxCategoryService,
+        private requestContextCache: RequestContextCacheService,
         @Inject(VENDURE_WORKSHOP_PLUGIN_OPTIONS) private options: PluginInitOptions,
     ) {}
 
@@ -85,6 +87,25 @@ export class WorkshopEventService {
 
     /**
      * @description
+     * Returns published workshop events starting within [from, to] (inclusive), ordered by
+     * start date, for the shop API's calendar-style browsing view.
+     */
+    async findInRange(ctx: RequestContext, from: Date, to: Date): Promise<WorkshopEvent[]> {
+        return this.listQueryBuilder
+            .build(WorkshopEvent, undefined, {
+                ctx,
+                where: {
+                    isPublished: true,
+                    startsAt: Between(from, to),
+                },
+            })
+            .leftJoinAndSelect('workshopevent.workshop', 'workshop')
+            .orderBy('workshopevent.startsAt', 'ASC')
+            .getMany();
+    }
+
+    /**
+     * @description
      * Find a single workshop event by ID.
      */
     findOne(
@@ -95,6 +116,37 @@ export class WorkshopEventService {
         return this.connection.getRepository(ctx, WorkshopEvent).findOne({
             where: { id },
             relations: relations ?? ['workshop'],
+        });
+    }
+
+    /**
+     * @description
+     * Returns the real number of saleable seats remaining for a WorkshopEvent, computed from
+     * its provisioned ProductVariant's saleable stock level (via
+     * `ProductVariantService.getSaleableStockLevel`) rather than the raw `capacity` column,
+     * which does not account for seats already allocated to other Orders. The ProductVariant
+     * is looked up in the `workshops` Channel context regardless of which Channel the
+     * incoming `ctx` itself is scoped to - mirroring `getWorkshopsChannelCtx`'s use elsewhere
+     * in this service - so this stays correct even if the shop API is ever queried without
+     * the `workshops` Channel token set. Falls back to the raw `capacity` if no
+     * ProductVariant has been provisioned, which should not happen for a persisted
+     * WorkshopEvent.
+     *
+     * The result is cached per-request (keyed by event id) since the shop API's
+     * `availableSeats` and `isSoldOut` fields both derive from this same lookup and may be
+     * requested together for the same event.
+     */
+    async getSaleableSeats(ctx: RequestContext, event: WorkshopEvent): Promise<number> {
+        return this.requestContextCache.get(ctx, `WorkshopEventService.getSaleableSeats.${event.id}`, async () => {
+            if (event.productVariantId == null) {
+                return event.capacity;
+            }
+            const workshopsCtx = await this.getWorkshopsChannelCtx(ctx);
+            const variant = await this.productVariantService.findOne(workshopsCtx, event.productVariantId);
+            if (!variant) {
+                return event.capacity;
+            }
+            return this.productVariantService.getSaleableStockLevel(workshopsCtx, variant);
         });
     }
 
