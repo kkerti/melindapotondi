@@ -110,6 +110,41 @@ npx vendure add
 
 and select `[Plugin] Create a new Vendure plugin`.
 
+## Workshop ticketing (Products + Variants)
+
+Workshops are modelled with Vendure's native `Product`/`ProductVariant` concepts — no
+custom entities. The `vendure-workshop` plugin only adds:
+
+- a `requiresShipping` custom field on `Product` (default `true`), plus a conditional
+  `OrderProcess` that only requires a shipping method when the order contains a product
+  that needs it;
+- `startsAt` / `endsAt` / `location` custom fields on `ProductVariant` for the scheduling
+  data;
+- `stockOnHand` = capacity and `trackInventory` = `TRUE` on each variant so Vendure's own
+  stock engine enforces the seat limit.
+
+### How to add a new workshop occurrence (admin workflow)
+
+1. **Workshop type = Product.** Create (or reuse) a `Product`, e.g. "Korongozás kezdőknek",
+   and set `customFields.requiresShipping = false` (ticket/virtual product — no shipment).
+   Optionally assign it to a "Workshops" collection/facet for admin organisation.
+2. **Occurrence = ProductVariant.** Add a new `ProductVariant` for each scheduled date:
+   - **Name** = the date label seen by customers (e.g. `2026-09-12 14:00`).
+   - **SKU** = a unique per-occurrence id following the `WORKSHOP-{slug}-{YYYYMMDD}-{HHmm}`
+     convention (e.g. `WORKSHOP-korongozas-kezdoknek-20260912-1400`).
+   - **Price** = the ticket price in smallest currency unit (fillér for HUF).
+   - **Stock on hand** = the participant capacity (this is what prevents overselling).
+   - **Track inventory** = `TRUE` (so capacity is always enforced).
+   - **Custom fields** = set `startsAt`, `endsAt` and `location`.
+3. To stop selling an occurrence (e.g. it happened, or is cancelled), set the variant's
+   `enabled = false` (or set stock on hand to 0).
+
+The storefront calendar reads these products via the standard shop API
+(`products` filtered by `requiresShipping: false`, then each variant's custom fields and
+`stockLevel`).
+
+To seed local/environments with sample data, run `npx ts-node scripts/seed-workshops.ts`.
+
 ## Migrations
 
 [Migrations](https://www.vendure.io/docs/developer-guide/migrations/) allow safe updates to the database schema. Migrations

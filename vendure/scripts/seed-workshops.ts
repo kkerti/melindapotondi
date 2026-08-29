@@ -1,159 +1,144 @@
 /**
- * Dev seed script: creates sample Workshop templates and WorkshopEvent
- * occurrences via the real `WorkshopService`/`WorkshopEventService` APIs
- * (never raw repository inserts) - which is what actually exercises the
- * auto-provisioning of a Product + ProductVariant (in the `workshops`
- * Channel) for every WorkshopEvent, the same path the admin API will hit in
- * production.
+ * Dev seed script: creates workshop Products and, for each, one ProductVariant per
+ * scheduled occurrence - the native Product/Variant modelling used since the workshop
+ * plugin was slimmed down to just custom fields + the conditional shipping order process.
  *
- * Why this matters: the `vendure-workshop` plugin (entities, services,
- * `WorkshopSkuStrategy`, the conditional-shipping `OrderProcess`, and the
- * auto-provisioning logic) was reworked across several commits but never
- * actually exercised end-to-end. This script is effectively the first
- * integration test of that whole chain, and it also produces realistic
- * sample data for local development and for the frontend calendar UI /
- * Playwright e2e tests to run against.
+ * For each Product the custom field `requiresShipping` is set to `false` (ticket/virtual
+ * product); each Variant carries the scheduling data (`startsAt`, `endsAt`, `location`)
+ * in its custom fields, with `stockOnHand` = capacity and `trackInventory` = TRUE so
+ * Vendure's own stock engine enforces the seat limit.
  *
- * Test-case coverage (see the `EVENTS` array below for which entry covers
- * which case):
- *  - >= 2 events landing on the SAME calendar day (2026-09-05, across two
- *    different workshops), for the "multiple events per day" calendar case.
+ * This exercises the real `ProductService`/`ProductVariantService` APIs (never raw
+ * repository inserts) and produces realistic sample data for local development, the
+ * frontend calendar UI and the Playwright e2e tests.
+ *
+ * Test-case coverage:
+ *  - >= 2 events landing on the SAME calendar day (2026-09-05, across two workshops).
  *  - Several events spread across multiple distinct FUTURE dates.
- *  - One event in the PAST, to confirm `WorkshopEventService.findUpcoming()`
- *    (and any shop-facing query built on it) correctly excludes it.
- *  - One event with `isPublished: false`, to confirm it doesn't leak into
- *    shop-facing queries.
- *  - One event with `capacity`/`endsAt` omitted, to exercise the
- *    "inherit from the Workshop template" defaulting logic in
- *    `WorkshopEventService.create()`.
+ *  - One event in the PAST (to confirm the storefront range query excludes it).
+ *  - One event with no `endsAt` (still has a `startsAt`, so still schedulable).
  *
- * Prerequisite: `scripts/setup-workshops-channel.ts` must already have been
- * run (the `workshops` Channel + Barion PaymentMethod assignment must
- * exist) - `WorkshopEventService.create()` provisions Products/ProductVariants
- * into that Channel and will throw if it's missing.
+ * Idempotent (good enough for repeated local dev runs): a Product is skipped if one with
+ * the same slug already exists; a Variant is skipped if one already exists for the same
+ * Product with the same SKU.
  *
  * Usage:
  *   npx ts-node scripts/seed-workshops.ts
  *
- * Note: use ts-node, not tsx - see `setup-workshops-channel.ts`'s header
- * comment for why (tsx transpiles via esbuild, which doesn't emit real
- * `design:type` decorator metadata that this app's TypeORM entities rely
- * on).
- *
- * Idempotent (good enough for repeated local dev runs, not bulletproof):
- * Workshops are skipped if one with the same `slug` already exists;
- * WorkshopEvents are skipped if one already exists for the same Workshop at
- * the exact same `startsAt`.
+ * Note: use ts-node, not tsx - tsx transpiles via esbuild, which doesn't emit real
+ * `design:type` decorator metadata that this app's TypeORM entities rely on.
  */
 import 'dotenv/config';
+import { GlobalFlag } from '@vendure/common/lib/generated-types';
 import {
     bootstrap,
     ConfigService,
+    Product,
+    ProductService,
     ProductVariant,
+    ProductVariantService,
     RequestContextService,
+    TaxCategoryService,
     TransactionalConnection,
     User,
 } from '@vendure/core';
 
 import { config } from '../src/vendure-config';
-import { Workshop } from '../src/plugins/vendure-workshop/entities/workshop.entity';
-import { WorkshopEvent } from '../src/plugins/vendure-workshop/entities/workshop-event.entity';
-import { WorkshopService } from '../src/plugins/vendure-workshop/services/workshop.service';
-import { WorkshopEventService } from '../src/plugins/vendure-workshop/services/workshop-event.service';
-import { CreateWorkshopEventInput, CreateWorkshopInput } from '../src/plugins/vendure-workshop/types';
 
 const LOCATION = 'Melinda Pötöndi Kerámia Műhely – 1074 Budapest, Dohány utca 20.';
 
-const WORKSHOPS: CreateWorkshopInput[] = [
+interface WorkshopSeed {
+    title: string;
+    slug: string;
+    description: string;
+    priceInCents: number;
+}
+
+interface OccurrenceSeed {
+    slug: string;
+    startsAt: string;
+    endsAt?: string;
+    capacity: number;
+    /** For console logging only - not persisted anywhere. */
+    note: string;
+}
+
+const WORKSHOPS: WorkshopSeed[] = [
     {
         title: 'Korongozás kezdőknek',
         slug: 'korongozas-kezdoknek',
         description:
             'Ismerkedj meg a fazekaskorong alapjaival! Ezen a kezdő szintű workshopon lépésről lépésre ' +
             'elsajátítod a korongozás technikáját, és elkészítheted saját első agyagedényedet szakértő ' +
-            'vezetéssel. Előzetes tapasztalat nem szükséges, minden szükséges eszközt és agyagot biztosítunk.',
-        defaultDurationMinutes: 120,
-        defaultCapacity: 6,
-        defaultPriceInCents: 1_200_000, // 12 000 HUF
+            'vezetéssel. Előzetes tapasztalat nem szükséges.',
+        priceInCents: 1_200_000, // 12 000 HUF
     },
     {
         title: 'Mázazás és díszítés workshop',
         slug: 'mazazas-es-diszites',
         description:
             'Már kiégetett, mázazásra váró kerámia tárgyakat díszíthetsz ezen a workshopon. Megismerkedhetsz ' +
-            'a különböző mázazási technikákkal és mintázási módszerekkel - tökéletes választás azoknak, akik ' +
-            'szeretnék kiegészíteni egy korábbi korongozós vagy kézépítéses alkotásukat egyedi mázzal.',
-        defaultDurationMinutes: 90,
-        defaultCapacity: 10,
-        defaultPriceInCents: 900_000, // 9 000 HUF
+            'a különböző mázazási technikákkal és mintázási módszerekkel.',
+        priceInCents: 900_000, // 9 000 HUF
     },
 ];
 
-interface EventSeed {
-    workshopSlug: string;
-    startsAt: Date;
-    endsAt?: Date;
-    capacity?: number;
-    isPublished?: boolean;
-    /** For console logging only - not persisted anywhere. */
-    note: string;
-}
-
-const EVENTS: EventSeed[] = [
-    // --- PAST event: must NOT show up via findUpcoming() ---
+const OCCURRENCES: OccurrenceSeed[] = [
+    // --- PAST event: must NOT show up via the range/upcoming views ---
     {
-        workshopSlug: 'korongozas-kezdoknek',
-        startsAt: new Date('2026-08-10T09:00:00Z'),
-        endsAt: new Date('2026-08-10T11:00:00Z'),
+        slug: 'korongozas-kezdoknek',
+        startsAt: '2026-08-10T09:00:00Z',
+        endsAt: '2026-08-10T11:00:00Z',
         capacity: 6,
-        note: 'PAST - should be excluded from findUpcoming()',
+        note: 'PAST - excluded from range query',
     },
     // --- multi-event day: two events on 2026-09-05, across different workshops ---
     {
-        workshopSlug: 'korongozas-kezdoknek',
-        startsAt: new Date('2026-09-05T09:00:00Z'),
-        endsAt: new Date('2026-09-05T11:00:00Z'),
+        slug: 'korongozas-kezdoknek',
+        startsAt: '2026-09-05T09:00:00Z',
+        endsAt: '2026-09-05T11:00:00Z',
         capacity: 6,
         note: 'FUTURE - multi-event day, slot 1/2 (2026-09-05 morning)',
     },
     {
-        workshopSlug: 'mazazas-es-diszites',
-        startsAt: new Date('2026-09-05T14:00:00Z'),
-        endsAt: new Date('2026-09-05T15:30:00Z'),
+        slug: 'mazazas-es-diszites',
+        startsAt: '2026-09-05T14:00:00Z',
+        endsAt: '2026-09-05T15:30:00Z',
         capacity: 10,
         note: 'FUTURE - multi-event day, slot 2/2 (2026-09-05 afternoon)',
     },
     // --- more future dates, spread out for the calendar view ---
     {
-        workshopSlug: 'korongozas-kezdoknek',
-        startsAt: new Date('2026-09-12T09:00:00Z'),
-        endsAt: new Date('2026-09-12T11:00:00Z'),
+        slug: 'korongozas-kezdoknek',
+        startsAt: '2026-09-12T09:00:00Z',
+        endsAt: '2026-09-12T11:00:00Z',
         capacity: 6,
         note: 'FUTURE (2026-09-12)',
     },
     {
-        workshopSlug: 'mazazas-es-diszites',
-        startsAt: new Date('2026-09-19T14:00:00Z'),
-        endsAt: new Date('2026-09-19T15:30:00Z'),
+        slug: 'mazazas-es-diszites',
+        startsAt: '2026-09-19T14:00:00Z',
+        endsAt: '2026-09-19T15:30:00Z',
         capacity: 10,
         note: 'FUTURE (2026-09-19)',
     },
-    // --- unpublished event: must NOT leak into shop-facing queries ---
+    // --- endsAt omitted: exercises the "still has startsAt" path ---
     {
-        workshopSlug: 'korongozas-kezdoknek',
-        startsAt: new Date('2026-09-26T09:00:00Z'),
-        endsAt: new Date('2026-09-26T11:00:00Z'),
-        capacity: 6,
-        isPublished: false,
-        note: 'FUTURE, UNPUBLISHED - should be excluded from shop queries',
-    },
-    // --- capacity/endsAt omitted: exercises inherit-from-Workshop defaulting ---
-    {
-        workshopSlug: 'mazazas-es-diszites',
-        startsAt: new Date('2026-10-03T14:00:00Z'),
-        note: 'FUTURE, capacity/endsAt omitted - inherits from Workshop template',
+        slug: 'mazazas-es-diszites',
+        startsAt: '2026-10-03T14:00:00Z',
+        capacity: 10,
+        note: 'FUTURE, endsAt omitted - still schedulable via startsAt',
     },
 ];
+
+/** Deterministic SKU per occurrence, mirroring the old DefaultWorkshopSkuStrategy. */
+function skuForOccurrence(slug: string, startsAt: string): string {
+    const d = new Date(startsAt);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const datePart = `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}`;
+    const timePart = `${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}`;
+    return `WORKSHOP-${slug}-${datePart}-${timePart}`;
+}
 
 async function main() {
     const app = await bootstrap(config);
@@ -162,12 +147,12 @@ async function main() {
         const requestContextService = app.get(RequestContextService);
         const configService = app.get(ConfigService);
         const connection = app.get(TransactionalConnection);
-        const workshopService = app.get(WorkshopService);
-        const workshopEventService = app.get(WorkshopEventService);
+        const productService = app.get(ProductService);
+        const productVariantService = app.get(ProductVariantService);
+        const taxCategoryService = app.get(TaxCategoryService);
 
-        // Same pattern as `setup-workshops-channel.ts`: look up the superadmin User
-        // and attach it to the ctx so any internal permission checks in the services
-        // we call resolve to full access, rather than a no-user ctx's zero permissions.
+        // Look up the superadmin User and attach it to the ctx so internal permission
+        // checks resolve to full access (same pattern as the previous scripts).
         const { superadminCredentials } = configService.authOptions;
         const superAdminUser = await connection.rawConnection.getRepository(User).findOne({
             where: { identifier: superadminCredentials.identifier },
@@ -179,95 +164,111 @@ async function main() {
         }
         const ctx = await requestContextService.create({ apiType: 'admin', user: superAdminUser });
 
-        // ---- Step 1: Workshop templates ----
-        console.log('=== Workshop templates ===');
-        const workshopBySlug = new Map<string, Workshop>();
-        let workshopsCreated = 0;
-        let workshopsSkipped = 0;
+        const taxCategories = await taxCategoryService.findAll(ctx);
+        const taxCategory = taxCategories.items.find(t => t.isDefault) ?? taxCategories.items[0];
+        const taxCategoryId = taxCategory?.id;
 
-        for (const input of WORKSHOPS) {
+        const productBySlug = new Map<string, Product>();
+        let productsCreated = 0;
+        let productsSkipped = 0;
+        let variantsCreated = 0;
+        let variantsSkipped = 0;
+        const createdSummaries: string[] = [];
+
+        // ---- Step 1: Products (workshop types) ----
+        console.log('=== Workshop products ===');
+        for (const seed of WORKSHOPS) {
             const existing = await connection
-                .getRepository(ctx, Workshop)
-                .findOne({ where: { slug: input.slug } });
+                .getRepository(ctx, Product)
+                .findOne({ where: { translations: { slug: seed.slug } } });
 
             if (existing) {
-                console.log(`  SKIP   "${input.title}" (slug="${input.slug}") already exists (id=${existing.id}).`);
-                workshopBySlug.set(input.slug, existing);
-                workshopsSkipped++;
+                console.log(`  SKIP   "${seed.title}" (slug="${seed.slug}") already exists (id=${existing.id}).`);
+                productBySlug.set(seed.slug, existing);
+                productsSkipped++;
                 continue;
             }
 
-            const created = await workshopService.create(ctx, input);
-            console.log(`  CREATE "${created.title}" (slug="${created.slug}", id=${created.id}).`);
-            workshopBySlug.set(input.slug, created);
-            workshopsCreated++;
+            const created = await productService.create(ctx, {
+                enabled: true,
+                // Virtual/ticket product: check out without a shipping method.
+                customFields: { requiresShipping: false },
+                translations: [
+                    {
+                        languageCode: ctx.languageCode,
+                        name: seed.title,
+                        slug: seed.slug,
+                        description: seed.description,
+                    },
+                ],
+            });
+            console.log(`  CREATE "${created.name}" (slug="${created.slug}", id=${created.id}).`);
+            productBySlug.set(seed.slug, created as unknown as Product);
+            productsCreated++;
         }
 
-        // ---- Step 2: Workshop events ----
-        console.log('\n=== Workshop events ===');
-        let eventsCreated = 0;
-        let eventsSkipped = 0;
-        const createdEventSummaries: string[] = [];
-
-        for (const seed of EVENTS) {
-            const workshop = workshopBySlug.get(seed.workshopSlug);
-            if (!workshop) {
-                throw new Error(`No Workshop found for slug "${seed.workshopSlug}" — cannot create event.`);
+        // ---- Step 2: ProductVariants (occurrences) ----
+        console.log('\n=== Workshop variants (occurrences) ===');
+        for (const occ of OCCURRENCES) {
+            const product = productBySlug.get(occ.slug);
+            if (!product) {
+                throw new Error(`No Product found for slug "${occ.slug}" — cannot create occurrence.`);
             }
 
-            const existing = await connection.getRepository(ctx, WorkshopEvent).findOne({
-                where: { workshop: { id: workshop.id }, startsAt: seed.startsAt },
+            const sku = skuForOccurrence(occ.slug, occ.startsAt);
+            const existingVariant = await connection.getRepository(ctx, ProductVariant).findOne({
+                where: { product: { id: product.id }, sku },
             });
 
-            if (existing) {
-                console.log(
-                    `  SKIP   ${workshop.title} @ ${seed.startsAt.toISOString()} already exists (id=${existing.id}). [${seed.note}]`,
-                );
-                eventsSkipped++;
+            if (existingVariant) {
+                console.log(`  SKIP   ${occ.slug} @ ${occ.startsAt} already exists (sku=${sku}). [${occ.note}]`);
+                variantsSkipped++;
                 continue;
             }
 
-            const input: CreateWorkshopEventInput = {
-                workshopId: workshop.id,
-                startsAt: seed.startsAt,
-                endsAt: seed.endsAt,
-                location: LOCATION,
-                capacity: seed.capacity,
-                isPublished: seed.isPublished ?? true,
-            };
-            const created = await workshopEventService.create(ctx, input);
+            const [variant] = await productVariantService.create(ctx, [
+                {
+                    enabled: true,
+                    productId: product.id,
+                    sku,
+                    price: WORKSHOPS.find(w => w.slug === occ.slug)!.priceInCents,
+                    stockOnHand: occ.capacity,
+                    // TRUE so stock is always enforced regardless of the global
+                    // trackInventory setting - a workshop's capacity limit must never be
+                    // silently ignored.
+                    trackInventory: GlobalFlag.TRUE,
+                    taxCategoryId,
+                    customFields: {
+                        startsAt: occ.startsAt,
+                        endsAt: occ.endsAt ?? null,
+                        location: LOCATION,
+                    },
+                    translations: [
+                        {
+                            languageCode: ctx.languageCode,
+                            name: `${new Date(occ.startsAt).toISOString().slice(0, 16).replace('T', ' ')}`,
+                        },
+                    ],
+                },
+            ]);
 
-            const variant = created.productVariantId
-                ? await connection
-                      .getRepository(ctx, ProductVariant)
-                      .findOne({ where: { id: created.productVariantId } })
-                : null;
-
-            console.log(
-                `  CREATE ${workshop.title} @ ${seed.startsAt.toISOString()} (id=${created.id}) [${seed.note}]\n` +
-                    `           sku=${variant?.sku ?? '(unknown)'} productId=${created.productId} ` +
-                    `productVariantId=${created.productVariantId} capacity=${created.capacity} ` +
-                    `endsAt=${created.endsAt.toISOString()} isPublished=${created.isPublished}`,
+            createdSummaries.push(
+                `${occ.slug} @ ${occ.startsAt} -> sku=${variant.sku} productId=${product.id} variantId=${variant.id}`,
             );
-            createdEventSummaries.push(
-                `${workshop.title} @ ${seed.startsAt.toISOString()} -> sku=${variant?.sku ?? '(unknown)'} ` +
-                    `productId=${created.productId} productVariantId=${created.productVariantId}`,
-            );
-            eventsCreated++;
+            variantsCreated++;
         }
 
         // ---- Summary ----
         console.log('\n=== Summary ===');
-        console.log(`Workshops: ${workshopsCreated} created, ${workshopsSkipped} skipped (already existed).`);
-        console.log(`Events:    ${eventsCreated} created, ${eventsSkipped} skipped (already existed).`);
-        if (createdEventSummaries.length > 0) {
-            console.log('\nCreated events (evidence that auto-provisioning ran):');
-            for (const line of createdEventSummaries) {
+        console.log(`Products: ${productsCreated} created, ${productsSkipped} skipped.`);
+        console.log(`Variants: ${variantsCreated} created, ${variantsSkipped} skipped.`);
+        if (createdSummaries.length > 0) {
+            console.log('\nCreated variants (evidence):');
+            for (const line of createdSummaries) {
                 console.log(`  - ${line}`);
             }
         }
     } finally {
-        // bootstrap() starts the HTTP listener; make sure the script exits cleanly.
         await app.close();
     }
 }
