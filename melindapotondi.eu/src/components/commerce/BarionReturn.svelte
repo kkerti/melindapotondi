@@ -36,10 +36,6 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    // Only the workshops channel is live right now, so this is hardcoded.
-                    // Once the physical-goods shop reopens, this needs to pick the right
-                    // channel token per order type instead of assuming "workshops".
-                    'vendure-token': 'workshops',
                 },
                 credentials: 'include',
                 body: JSON.stringify({

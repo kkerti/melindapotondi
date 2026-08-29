@@ -23,7 +23,8 @@
       noEvents: "Jelenleg nincs meghirdetett workshop a következő hónapokban. Nézz vissza később!",
       selectPrompt: "Válassz ki egy kiemelt dátumot a naptárban a workshopok megtekintéséhez.",
       noEventsOnDay: "Ezen a napon nincs workshop.",
-      seatsLeft: (available: number, capacity: number) => `${available} / ${capacity} hely szabad`,
+      inStock: "Van szabad hely",
+      lowStock: "Már csak pár hely",
       soldOut: "Betelt",
       reserve: "Foglalás",
       location: "Helyszín",
@@ -33,7 +34,8 @@
       noEvents: "There are no upcoming workshops scheduled right now. Please check back later.",
       selectPrompt: "Select a highlighted date on the calendar to see its workshops.",
       noEventsOnDay: "No workshops on this day.",
-      seatsLeft: (available: number, capacity: number) => `${available} of ${capacity} seats left`,
+      inStock: "Available",
+      lowStock: "Only a few seats left",
       soldOut: "Sold out",
       reserve: "Reserve",
       location: "Location",
@@ -44,10 +46,9 @@
   const calendarLocale = locale === "hu" ? "hu-HU" : "en-GB";
   const dateFormatterLocale = locale === "hu" ? "hu-HU" : "en-GB";
 
-  // Reserve links point at a page a later task builds (`/workshops/reserve/[id]` resp.
-  // `/en/workshops/reserve/[id]`) — 404 for now, that's expected.
-  function reserveHref(eventId: string): string {
-    return locale === "en" ? `/en/workshops/reserve/${eventId}` : `/workshops/reserve/${eventId}`;
+  // Reserve links point at the reservation page, keyed by the ProductVariant id.
+  function reserveHref(variantId: string): string {
+    return locale === "en" ? `/en/workshops/reserve/${variantId}` : `/workshops/reserve/${variantId}`;
   }
 
   /** Budapest-local calendar day ("YYYY-MM-DD") that a UTC ISO instant falls on. */
@@ -67,9 +68,16 @@
     return new CalendarDate(year, month, day);
   }
 
+  function stockLabel(event: WorkshopEventDto): string {
+    if (event.stockLevel === "OUT_OF_STOCK") return t.soldOut;
+    if (event.stockLevel === "LOW_STOCK") return t.lowStock;
+    return t.inStock;
+  }
+
   const eventsByDay = $derived.by(() => {
     const map = new Map<string, WorkshopEventDto[]>();
     for (const event of events) {
+      if (!event.startsAt) continue;
       const key = toBudapestDateKey(event.startsAt);
       const existing = map.get(key);
       if (existing) {
@@ -80,7 +88,7 @@
     }
     // Keep each day's events ordered by start time.
     for (const dayEvents of map.values()) {
-      dayEvents.sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+      dayEvents.sort((a, b) => a.startsAt!.localeCompare(b.startsAt!));
     }
     return map;
   });
@@ -135,10 +143,6 @@
       maximumFractionDigits: 0,
     }).format(cents / 100);
   }
-
-  function effectivePriceInCents(event: WorkshopEventDto): number {
-    return event.priceInCents ?? event.workshop.defaultPriceInCents;
-  }
 </script>
 
 {#if events.length === 0}
@@ -187,20 +191,23 @@
             {#each selectedDayEvents as event (event.id)}
               <Card>
                 <CardHeader>
-                  <CardTitle>{event.workshop.title}</CardTitle>
+                  <CardTitle>{event.productName}</CardTitle>
                   <CardDescription>
-                    {formatTimeRange(event.startsAt, event.endsAt)} &middot; {t.location}: {event.location}
+                    {event.startsAt && event.endsAt
+                      ? formatTimeRange(event.startsAt, event.endsAt)
+                      : event.variantName}
+                    {event.location ? ` &middot; ${t.location}: ${event.location}` : ""}
                   </CardDescription>
                 </CardHeader>
                 <CardContent class="flex flex-wrap items-center justify-between gap-2 text-sm">
-                  <span class="font-medium">{formatPrice(effectivePriceInCents(event))}</span>
-                  <span class={event.isSoldOut ? "text-destructive" : "text-muted-foreground"}>
-                    {event.isSoldOut ? t.soldOut : t.seatsLeft(event.availableSeats, event.capacity)}
+                  <span class="font-medium">{formatPrice(event.priceWithTax)}</span>
+                  <span class={event.stockLevel === "OUT_OF_STOCK" ? "text-destructive" : "text-muted-foreground"}>
+                    {stockLabel(event)}
                   </span>
                 </CardContent>
                 <CardFooter>
-                  <Button href={reserveHref(event.id)} disabled={event.isSoldOut} class="w-full">
-                    {event.isSoldOut ? t.soldOut : t.reserve}
+                  <Button href={reserveHref(event.id)} disabled={event.stockLevel === "OUT_OF_STOCK"} class="w-full">
+                    {event.stockLevel === "OUT_OF_STOCK" ? t.soldOut : t.reserve}
                   </Button>
                 </CardFooter>
               </Card>

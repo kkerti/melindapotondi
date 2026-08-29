@@ -1,7 +1,7 @@
 ---
-// Ticket reservation page for a single WorkshopEvent, linked from the "Foglalás" button
-// on /workshops. Protected by the same password gate as the rest of /workshops (see
-// src/middleware.ts) since it lives under that path prefix.
+// Ticket reservation page for a single workshop occurrence (a ProductVariant), linked from
+// the "Foglalás" button on /workshops. Protected by the same password gate as the rest of
+// /workshops (see src/middleware.ts) since it lives under that path prefix.
 export const prerender = false;
 
 import Layout from '@layouts/Layout.astro';
@@ -12,14 +12,13 @@ import { getWorkshopEvent } from '@components/commerce/workshops';
 const BUDAPEST_TZ = 'Europe/Budapest';
 
 const { id } = Astro.params;
-const rawEvent = id ? await getWorkshopEvent(id) : null;
-// The shop API's workshopEvent query already returns null for unpublished events, but
-// double-check isPublished ourselves too (belt-and-suspenders) rather than trusting that
-// alone. Events missing a provisioned productVariantId can't be reserved either — treat
-// that the same as "not found" rather than rendering a form that would just error.
-const event = rawEvent && rawEvent.isPublished && rawEvent.productVariantId ? rawEvent : null;
+// id is a ProductVariant id. Variants with no startsAt are not reservable (they have not
+// been fully configured), so treat those as "not found" rather than rendering a broken form.
+const event = id ? await getWorkshopEvent(id) : null;
 
-if (!event) {
+// Only a truly missing variant (or one lacking a scheduled start) is a 404. Sold-out
+// variants still render with a "sold out" notice instead of the reservation form.
+if (!event || event.startsAt == null) {
   Astro.response.status = 404;
 }
 
@@ -48,10 +47,10 @@ function formatPrice(cents: number): string {
   }).format(cents / 100);
 }
 
-const priceInCents = event ? (event.priceInCents ?? event.workshop.defaultPriceInCents) : 0;
-const formattedDateTime = event ? formatDateTime(event.startsAt, event.endsAt) : '';
-const formattedPrice = event ? formatPrice(priceInCents) : '';
-const pageTitle = event ? `${event.workshop.title} — Foglalás — Melinda Potondi` : 'Workshop nem található — Melinda Potondi';
+const formattedDateTime = event && event.startsAt && event.endsAt ? formatDateTime(event.startsAt, event.endsAt) : '';
+const formattedPrice = event ? formatPrice(event.priceWithTax) : '';
+const isSoldOut = event?.stockLevel === 'OUT_OF_STOCK';
+const pageTitle = event ? `${event.productName} — Foglalás — Melinda Potondi` : 'Workshop nem található — Melinda Potondi';
 ---
 
 <Layout title={pageTitle}>
@@ -66,31 +65,32 @@ const pageTitle = event ? `${event.workshop.title} — Foglalás — Melinda Pot
       <div class="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>{event.workshop.title}</CardTitle>
+            <CardTitle>{event.productName}</CardTitle>
             <CardDescription>
-              {formattedDateTime} &middot; Helyszín: {event.location}
+              {formattedDateTime}
+              {event.location ? ` &middot; Helyszín: ${event.location}` : ''}
             </CardDescription>
           </CardHeader>
           <CardContent class="space-y-3">
-            {event.workshop.description && (
-              <p class="text-sm text-muted-foreground">{event.workshop.description}</p>
+            {event.description && (
+              <p class="text-sm text-muted-foreground">{event.description}</p>
             )}
             <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
               <span class="font-medium">{formattedPrice}</span>
-              <span class={event.isSoldOut ? 'text-destructive' : 'text-muted-foreground'}>
-                {event.isSoldOut ? 'Betelt' : `${event.availableSeats} / ${event.capacity} hely szabad`}
+              <span class={isSoldOut ? 'text-destructive' : 'text-muted-foreground'}>
+                {isSoldOut ? 'Betelt' : 'Van szabad hely'}
               </span>
             </div>
           </CardContent>
         </Card>
 
-        {event.isSoldOut ? (
+        {isSoldOut ? (
           <div class="space-y-2 text-center">
             <p class="font-medium text-destructive">Ez az időpont sajnos betelt.</p>
             <a href="/workshops" class="text-primary underline">Nézz szét más időpontok között</a>
           </div>
         ) : (
-          <WorkshopReserveForm client:load productVariantId={event.productVariantId!} locale="hu" />
+          <WorkshopReserveForm client:load productVariantId={event.id} locale="hu" />
         )}
       </div>
     )}

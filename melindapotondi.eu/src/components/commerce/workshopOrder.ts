@@ -1,19 +1,18 @@
 import { VENDURE_SHOP_API_URL } from "astro:env/client";
 import type { BarionPaymentResult } from "./payment";
 
-// Channel-scoped client functions for the single-ticket workshop reserve flow. These
-// mirror cart.ts/payment.ts's exact fetch pattern (raw fetch, credentials: 'include' so
-// the session cookie carries the active order across calls) but add the `vendure-token:
-// workshops` header to every request, so addItemToOrder/setCustomerForOrder/
-// initiateBarionPayment all resolve against the same channel-scoped active order.
-const WORKSHOP_CHANNEL_TOKEN = "workshops";
+// Client functions for the single-ticket workshop reserve flow, operating against the
+// DEFAULT channel (workshop tickets are ordinary Products/Variants now, not a separate
+// channel). These mirror cart.ts/payment.ts's exact fetch pattern (raw fetch,
+// credentials: 'include' so the session cookie carries the active order across calls).
+// addItemToOrder/setCustomerForOrder/initiateBarionPayment all resolve against the same
+// default-channel active order.
 
-async function postWorkshopOrderRequest(query: string, variables?: Record<string, unknown>) {
+async function postOrderRequest(query: string, variables?: Record<string, unknown>) {
     const response = await fetch(VENDURE_SHOP_API_URL, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "vendure-token": WORKSHOP_CHANNEL_TOKEN,
         },
         credentials: "include",
         body: JSON.stringify({ query, variables }),
@@ -39,12 +38,11 @@ export type WorkshopOrderResult = WorkshopOrderSuccessResult | WorkshopOrderErro
 
 /**
  * Adds one ticket (quantity is always 1 — this is a single-ticket flow, no quantity
- * param) for the given ProductVariant to the current channel-scoped active order.
- * Mirrors cart.ts's addToCart: success is detected by the presence of `id` on the
- * union result (only the Order arm of the union has that field), same as cart.ts does.
+ * param) for the given ProductVariant to the current active order. Mirrors cart.ts's
+ * addToCart: success is detected by the presence of `id` on the union result.
  */
 export async function addWorkshopTicketToOrder(productVariantId: string): Promise<WorkshopOrderResult> {
-    const result = await postWorkshopOrderRequest(
+    const result = await postOrderRequest(
         `
             mutation AddWorkshopTicketToOrder($productVariantId: ID!) {
                 addItemToOrder(productVariantId: $productVariantId, quantity: 1) {
@@ -88,7 +86,7 @@ export async function addWorkshopTicketToOrder(productVariantId: string): Promis
 
 /**
  * Sets the guest customer (email + first/last name, the latter needed for Barion's
- * CardHolderNameHint) on the current channel-scoped active order.
+ * CardHolderNameHint) on the current active order.
  *
  * If the browser's session is already authenticated as a real Customer (e.g. from
  * unrelated testing/browsing on the site), Vendure's DefaultGuestCheckoutStrategy refuses
@@ -101,7 +99,7 @@ export async function setWorkshopOrderCustomer(
     firstName: string,
     lastName: string,
 ): Promise<WorkshopOrderResult> {
-    const result = await postWorkshopOrderRequest(
+    const result = await postOrderRequest(
         `
             mutation SetWorkshopOrderCustomer($input: CreateCustomerInput!) {
                 setCustomerForOrder(input: $input) {
@@ -141,15 +139,11 @@ export async function setWorkshopOrderCustomer(
 }
 
 /**
- * Same shape as payment.ts's initiateBarionPayment (zero args — operates on whatever the
- * current active order is, resolved via session cookie) but with the extra
- * `vendure-token: workshops` header so it resolves the same channel-scoped order that
- * addWorkshopTicketToOrder/setWorkshopOrderCustomer created/updated. Reuses the
- * BarionPaymentResult type from payment.ts rather than redefining it; reuse
- * payment.ts's redirectToBarion helper as-is for the actual redirect (channel-agnostic).
+ * Initiates a Barion payment for the current active order. Reuses `BarionPaymentResult`
+ * from payment.ts and delegates the actual redirect to payment.ts's `redirectToBarion`.
  */
 export async function initiateWorkshopTicketPayment(): Promise<BarionPaymentResult> {
-    const result = await postWorkshopOrderRequest(`
+    const result = await postOrderRequest(`
         mutation InitiateWorkshopTicketPayment {
             initiateBarionPayment {
                 success

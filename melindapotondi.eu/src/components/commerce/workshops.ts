@@ -1,131 +1,150 @@
 import { VENDURE_SHOP_API_URL } from "astro:env/client";
 
+// One scheduled workshop occurrence = one ProductVariant of a "workshop" Product
+// (products flagged `requiresShipping: false`). This module queries Vendure's native
+// shop API against the DEFAULT channel (no `vendure-token` header), reading each
+// variant's scheduling custom fields (startsAt/endsAt/location) and stock level.
+
 export interface WorkshopEventDto {
+    /** The ProductVariant id. This is what addItemToOrder / reserve URLs use. */
     id: string;
-    startsAt: string;
-    endsAt: string;
-    location: string;
-    capacity: number;
-    priceInCents: number | null;
-    isPublished: boolean;
-    // Shop-API-only fields: real saleable stock, not raw capacity.
-    availableSeats: number;
-    isSoldOut: boolean;
-    workshop: {
-        id: string;
-        title: string;
-        description: string | null;
-        defaultPriceInCents: number;
+    productId: string;
+    sku: string;
+    /** Variant name, conventionally the localized date label set by the admin. */
+    variantName: string;
+    productName: string;
+    productSlug: string;
+    description: string | null;
+    startsAt: string | null;
+    endsAt: string | null;
+    location: string | null;
+    priceWithTax: number;
+    currencyCode: string;
+    /** Vendure variant stock level: "IN_STOCK" | "OUT_OF_STOCK" | "LOW_STOCK". */
+    stockLevel: string;
+}
+
+interface VariantNode {
+    id: string;
+    name: string;
+    sku: string;
+    priceWithTax: number;
+    currencyCode: string;
+    stockLevel: string;
+    customFields: {
+        startsAt: string | null;
+        endsAt: string | null;
+        location: string | null;
     };
 }
 
-/** Single-event lookup result. Includes the auto-provisioned Product/ProductVariant ids
- * needed to add a ticket to an order, which the list query above doesn't request. */
-export interface WorkshopEventDetailDto extends WorkshopEventDto {
-    productId: string | null;
-    productVariantId: string | null;
+interface ProductNode {
+    id: string;
+    name: string;
+    slug: string;
+    description: string;
+    variants: VariantNode[];
 }
 
-/**
- * Fetches published WorkshopEvents starting in [from, to] from the `workshops` Vendure
- * Channel (never the storefront's default channel) via the `vendure-token` header.
- *
- * This is a read-only, unauthenticated catalog query with no cart/session involvement,
- * so unlike `products.ts`'s functions it deliberately omits `credentials: 'include'` —
- * verified empirically against a live server that the query succeeds without it.
- */
-export async function getWorkshopEventsInRange(from: Date, to: Date): Promise<WorkshopEventDto[]> {
-    const response = await fetch(VENDURE_SHOP_API_URL, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "vendure-token": "workshops",
-        },
-        body: JSON.stringify({
-            query: `
-                query WorkshopEventsInRange($from: DateTime!, $to: DateTime!) {
-                    workshopEventsInRange(from: $from, to: $to) {
-                        id
+const WORKSHOP_VARIANTS_QUERY = `
+    query WorkshopVariants {
+        products(options: { filter: { requiresShipping: { eq: false } }, take: 100 }) {
+            items {
+                id
+                name
+                slug
+                description
+                variants {
+                    id
+                    name
+                    sku
+                    priceWithTax
+                    currencyCode
+                    stockLevel
+                    customFields {
                         startsAt
                         endsAt
                         location
-                        capacity
-                        priceInCents
-                        isPublished
-                        availableSeats
-                        isSoldOut
-                        workshop {
-                            id
-                            title
-                            description
-                            defaultPriceInCents
-                        }
                     }
                 }
-            `,
-            variables: {
-                from: from.toISOString(),
-                to: to.toISOString(),
-            },
-        }),
-    });
-
-    const result = await response.json();
-    if (result.data?.workshopEventsInRange) {
-        return result.data.workshopEventsInRange;
+            }
+        }
     }
-    console.error("getWorkshopEventsInRange failed", result.errors ?? result);
-    return [];
-}
+`;
 
 /**
- * Fetches a single WorkshopEvent by id from the `workshops` Vendure Channel, for the
- * reserve/checkout page. The shop API's `workshopEvent` query already returns null for
- * unpublished events server-side, but callers should still treat a falsy `isPublished`
- * on whatever comes back as "not found" too (belt-and-suspenders).
+ * Fetches all workshop variants (across all workshop Products) from the DEFAULT channel
+ * shop API and flattens them into a single list, each entry carrying its owning Product's
+ * name/slug/description. `products` here is filtered by the `requiresShipping: false`
+ * custom field, i.e. exactly the ticket/virtual products.
  *
- * Same read-only-catalog-query reasoning as `getWorkshopEventsInRange` above: no
- * cart/session involved, so `credentials: 'include'` is deliberately omitted.
+ * Read-only catalog query with no cart/session involvement, so like `products.ts` it
+ * sends `credentials` only where an active order is actually needed; catalog listing does
+ * not need one.
  */
-export async function getWorkshopEvent(id: string): Promise<WorkshopEventDetailDto | null> {
+export async function getWorkshopVariants(): Promise<WorkshopEventDto[]> {
     const response = await fetch(VENDURE_SHOP_API_URL, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "vendure-token": "workshops",
-        },
-        body: JSON.stringify({
-            query: `
-                query WorkshopEvent($id: ID!) {
-                    workshopEvent(id: $id) {
-                        id
-                        startsAt
-                        endsAt
-                        location
-                        capacity
-                        priceInCents
-                        isPublished
-                        availableSeats
-                        isSoldOut
-                        productId
-                        productVariantId
-                        workshop {
-                            id
-                            title
-                            description
-                            defaultPriceInCents
-                        }
-                    }
-                }
-            `,
-            variables: { id },
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: WORKSHOP_VARIANTS_QUERY }),
     });
 
     const result = await response.json();
     if (result.errors) {
-        console.error("getWorkshopEvent failed", result.errors);
-        return null;
+        console.error("getWorkshopVariants failed", result.errors);
+        return [];
     }
-    return result.data?.workshopEvent ?? null;
+
+    const products: ProductNode[] = result.data?.products?.items ?? [];
+    const variants: WorkshopEventDto[] = [];
+    for (const product of products) {
+        for (const variant of product.variants) {
+            variants.push({
+                id: variant.id,
+                productId: product.id,
+                sku: variant.sku,
+                variantName: variant.name,
+                productName: product.name,
+                productSlug: product.slug,
+                description: product.description || null,
+                startsAt: variant.customFields?.startsAt ?? null,
+                endsAt: variant.customFields?.endsAt ?? null,
+                location: variant.customFields?.location ?? null,
+                priceWithTax: variant.priceWithTax,
+                currencyCode: variant.currencyCode,
+                stockLevel: variant.stockLevel,
+            });
+        }
+    }
+    return variants;
+}
+
+function isSoldOut(stockLevel: string): boolean {
+    return stockLevel === "OUT_OF_STOCK";
+}
+
+/**
+ * Returns workshop variants whose `startsAt` falls within [from, to], ordered by start,
+ * excluding sold-out and un-scheduled (null startsAt) variants.
+ */
+export async function getWorkshopEventsInRange(from: Date, to: Date): Promise<WorkshopEventDto[]> {
+    const variants = await getWorkshopVariants();
+    return variants
+        .filter(
+            v =>
+                v.startsAt != null &&
+                !isSoldOut(v.stockLevel) &&
+                new Date(v.startsAt) >= from &&
+                new Date(v.startsAt) <= to,
+        )
+        .sort((a, b) => (a.startsAt! < b.startsAt! ? -1 : a.startsAt! > b.startsAt! ? 1 : 0));
+}
+
+/**
+ * Finds a single workshop variant by its ProductVariant id, for the reserve/checkout page.
+ * Returns null when the variant id is unknown, not a workshop variant, or sold out.
+ */
+export async function getWorkshopEvent(id: string): Promise<WorkshopEventDto | null> {
+    const variants = await getWorkshopVariants();
+    return variants.find(v => v.id === id) ?? null;
 }
