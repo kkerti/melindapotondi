@@ -150,7 +150,7 @@ export const config: VendureConfig = {
             redirectUrl: process.env.BARION_REDIRECT_URL || 'http://localhost:4321/checkout/barion-return',
             sandbox: process.env.BARION_SANDBOX === 'true',
         }),
-        VendureWorkshopPlugin.init({}),
+        VendureWorkshopPlugin.init(),
 
     ],
 };
