@@ -127,7 +127,9 @@ custom entities. The `vendure-workshop` plugin only adds:
 
 1. **Workshop type = Product.** Create (or reuse) a `Product`, e.g. "Korongozás kezdőknek",
    and set `customFields.requiresShipping = false` (ticket/virtual product — no shipment).
-   Optionally assign it to a "Workshops" collection/facet for admin organisation.
+   The storefront calendar selects workshop products by exactly this `requiresShipping: false`
+   flag, so every product meant to appear in the calendar must set it, and no non-workshop
+   product may set it.
 2. **Occurrence = ProductVariant.** Add a new `ProductVariant` for each scheduled date:
    - **Name** = the date label seen by customers (e.g. `2026-09-12 14:00`).
    - **SKU** = a unique per-occurrence id following the `WORKSHOP-{slug}-{YYYYMMDD}-{HHmm}`
@@ -144,6 +146,12 @@ The storefront calendar reads these products via the standard shop API
 `stockLevel`).
 
 To seed local/environments with sample data, run `npx ts-node scripts/seed-workshops.ts`.
+
+> **Legacy cleanup note:** the previous model created a dedicated `workshops` channel and
+> auto-provisioned `WORKSHOP-%` products/variants. After applying the migration that drops
+> the old `workshop`/`workshop_event` tables, delete any leftover `WORKSHOP-%` products (and
+> the obsolete `workshops` channel) from that era — the seed skips by SKU, but the old rows
+> are otherwise orphaned and invisible to the default-channel storefront.
 
 ## Migrations
 

@@ -83,13 +83,20 @@ const WORKSHOP_VARIANTS_QUERY = `
  * not need one.
  */
 export async function getWorkshopVariants(): Promise<WorkshopEventDto[]> {
-    const response = await fetch(VENDURE_SHOP_API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: WORKSHOP_VARIANTS_QUERY }),
-    });
+    let result: { errors?: unknown; data?: { products?: { items?: ProductNode[] } } };
+    try {
+        const response = await fetch(VENDURE_SHOP_API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: WORKSHOP_VARIANTS_QUERY }),
+        });
+        result = await response.json();
+    } catch (err) {
+        // Shop API unreachable during SSR: fail soft to an empty catalog rather than a 500.
+        console.error("getWorkshopVariants fetch failed", err);
+        return [];
+    }
 
-    const result = await response.json();
     if (result.errors) {
         console.error("getWorkshopVariants failed", result.errors);
         return [];
@@ -142,7 +149,8 @@ export async function getWorkshopEventsInRange(from: Date, to: Date): Promise<Wo
 
 /**
  * Finds a single workshop variant by its ProductVariant id, for the reserve/checkout page.
- * Returns null when the variant id is unknown, not a workshop variant, or sold out.
+ * Returns null when the variant id is unknown or is not a workshop variant. Sold-out
+ * variants ARE returned (the reserve page renders a "sold out" notice instead of the form).
  */
 export async function getWorkshopEvent(id: string): Promise<WorkshopEventDto | null> {
     const variants = await getWorkshopVariants();

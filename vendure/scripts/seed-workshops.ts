@@ -140,6 +140,21 @@ function skuForOccurrence(slug: string, startsAt: string): string {
     return `WORKSHOP-${slug}-${datePart}-${timePart}`;
 }
 
+/** Customer-facing variant name label, e.g. "2026-09-12 11:00", in Europe/Budapest time. */
+function variantNameForOccurrence(startsAt: string): string {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Budapest',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    })
+        .format(new Date(startsAt))
+        .replace(',', '');
+}
+
 async function main() {
     const app = await bootstrap(config);
 
@@ -216,8 +231,11 @@ async function main() {
             }
 
             const sku = skuForOccurrence(occ.slug, occ.startsAt);
+            // SKU is globally unique across ALL variants, so check by SKU alone. This also
+            // catches leftover variants provisioned by the old workshop plugin (same SKU
+            // convention), which would otherwise collide on insert.
             const existingVariant = await connection.getRepository(ctx, ProductVariant).findOne({
-                where: { product: { id: product.id }, sku },
+                where: { sku },
             });
 
             if (existingVariant) {
@@ -246,7 +264,7 @@ async function main() {
                     translations: [
                         {
                             languageCode: ctx.languageCode,
-                            name: `${new Date(occ.startsAt).toISOString().slice(0, 16).replace('T', ' ')}`,
+                            name: variantNameForOccurrence(occ.startsAt),
                         },
                     ],
                 },
