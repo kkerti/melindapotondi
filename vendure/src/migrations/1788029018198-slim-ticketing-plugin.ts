@@ -25,14 +25,14 @@ export class SlimTicketingPlugin1788029018198 implements MigrationInterface {
             undefined,
         );
         await queryRunner.query(
-            `ALTER TABLE "product_variant" ADD "customFieldslocation" character varying`,
+            `ALTER TABLE "product_variant" ADD "customFieldsLocation" character varying`,
             undefined,
         );
     }
 
     public async down(queryRunner: QueryRunner): Promise<any> {
         await queryRunner.query(
-            `ALTER TABLE "product_variant" DROP COLUMN "customFieldslocation"`,
+            `ALTER TABLE "product_variant" DROP COLUMN "customFieldsLocation"`,
             undefined,
         );
         await queryRunner.query(

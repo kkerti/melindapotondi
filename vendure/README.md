@@ -130,7 +130,13 @@ custom entities. The `vendure-workshop` plugin only adds:
    The storefront calendar selects workshop products by exactly this `requiresShipping: false`
    flag, so every product meant to appear in the calendar must set it, and no non-workshop
    product may set it.
-2. **Occurrence = ProductVariant.** Add a new `ProductVariant` for each scheduled date:
+2. **Occurrence = ProductOption under a "Dátum" group.** A `Product` with no option group
+   can only hold ONE variant, so to sell multiple dates of the same workshop you must create
+   a `ProductOptionGroup` (e.g. "Dátum") on the product, then add one `ProductOption` per
+   scheduled date (its code/name is the date label). Each variant is then linked to exactly
+   one option, which is what lets Vendure keep the dates distinct.
+3. **Occurrence = ProductVariant.** Add a new `ProductVariant` for each scheduled date,
+   selecting the matching "Dátum" option for it:
    - **Name** = the date label seen by customers (e.g. `2026-09-12 14:00`).
    - **SKU** = a unique per-occurrence id following the `WORKSHOP-{slug}-{YYYYMMDD}-{HHmm}`
      convention (e.g. `WORKSHOP-korongozas-kezdoknek-20260912-1400`).
@@ -138,7 +144,7 @@ custom entities. The `vendure-workshop` plugin only adds:
    - **Stock on hand** = the participant capacity (this is what prevents overselling).
    - **Track inventory** = `TRUE` (so capacity is always enforced).
    - **Custom fields** = set `startsAt`, `endsAt` and `location`.
-3. To stop selling an occurrence (e.g. it happened, or is cancelled), set the variant's
+4. To stop selling an occurrence (e.g. it happened, or is cancelled), set the variant's
    `enabled = false` (or set stock on hand to 0).
 
 The storefront calendar reads these products via the standard shop API

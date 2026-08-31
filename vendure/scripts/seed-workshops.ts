@@ -34,6 +34,10 @@ import {
     bootstrap,
     ConfigService,
     Product,
+    ProductOption,
+    ProductOptionGroup,
+    ProductOptionGroupService,
+    ProductOptionService,
     ProductService,
     ProductVariant,
     ProductVariantService,
@@ -164,6 +168,8 @@ async function main() {
         const connection = app.get(TransactionalConnection);
         const productService = app.get(ProductService);
         const productVariantService = app.get(ProductVariantService);
+        const productOptionGroupService = app.get(ProductOptionGroupService);
+        const productOptionService = app.get(ProductOptionService);
         const taxCategoryService = app.get(TaxCategoryService);
 
         // Look up the superadmin User and attach it to the ctx so internal permission
@@ -184,6 +190,8 @@ async function main() {
         const taxCategoryId = taxCategory?.id;
 
         const productBySlug = new Map<string, Product>();
+        const optionGroupBySlug = new Map<string, ProductOptionGroup>();
+        const optionBySku = new Map<string, ProductOption>();
         let productsCreated = 0;
         let productsSkipped = 0;
         let variantsCreated = 0;
@@ -222,15 +230,64 @@ async function main() {
             productsCreated++;
         }
 
-        // ---- Step 2: ProductVariants (occurrences) ----
+        // ---- Step 2: Option groups + options (one "Dátum" group per workshop product) ----
+        // Vendure requires a ProductOptionGroup/ProductOption to distinguish multiple
+        // variants on the same Product: without options a Product can only have ONE variant.
+        // We model each occurrence as an option under a per-product "Dátum" group.
+        console.log('\n=== Workshop option groups + options ===');
+        for (const seed of WORKSHOPS) {
+            const product = productBySlug.get(seed.slug)!;
+            const groupCode = `${seed.slug}-datum`;
+
+            let group = optionGroupBySlug.get(seed.slug);
+            if (!group) {
+                group = (await connection.getRepository(ctx, ProductOptionGroup).findOne({
+                    where: { code: groupCode },
+                })) ?? undefined;
+            }
+            if (!group) {
+                group = await productOptionGroupService.create(ctx, {
+                    code: groupCode,
+                    translations: [{ languageCode: ctx.languageCode, name: 'Dátum' }],
+                });
+                console.log(`  CREATE option group "${groupCode}" (id=${group.id}).`);
+            } else {
+                console.log(`  SKIP   option group "${groupCode}" already exists (id=${group.id}).`);
+            }
+            optionGroupBySlug.set(seed.slug, group as unknown as ProductOptionGroup);
+
+            await productService.addOptionGroupToProduct(ctx, product.id, group.id);
+        }
+
+        // ---- Step 3: ProductVariants (occurrences) ----
         console.log('\n=== Workshop variants (occurrences) ===');
         for (const occ of OCCURRENCES) {
             const product = productBySlug.get(occ.slug);
             if (!product) {
                 throw new Error(`No Product found for slug "${occ.slug}" — cannot create occurrence.`);
             }
-
+            const group = optionGroupBySlug.get(occ.slug)!;
             const sku = skuForOccurrence(occ.slug, occ.startsAt);
+            const optionName = variantNameForOccurrence(occ.startsAt);
+
+            let option = optionBySku.get(sku);
+            if (!option) {
+                option = (await connection.getRepository(ctx, ProductOption).findOne({
+                    where: { code: sku },
+                })) ?? undefined;
+            }
+            if (!option) {
+                option = await productOptionService.create(ctx, group.id, {
+                    code: sku,
+                    productOptionGroupId: group.id,
+                    translations: [{ languageCode: ctx.languageCode, name: optionName }],
+                });
+                console.log(`  CREATE option "${sku}" (id=${option.id}).`);
+            } else {
+                console.log(`  SKIP   option "${sku}" already exists (id=${option.id}).`);
+            }
+            optionBySku.set(sku, option as unknown as ProductOption);
+
             // SKU is globally unique across ALL variants, so check by SKU alone. This also
             // catches leftover variants provisioned by the old workshop plugin (same SKU
             // convention), which would otherwise collide on insert.
@@ -249,6 +306,7 @@ async function main() {
                     enabled: true,
                     productId: product.id,
                     sku,
+                    optionIds: [option.id],
                     price: WORKSHOPS.find(w => w.slug === occ.slug)!.priceInCents,
                     stockOnHand: occ.capacity,
                     // TRUE so stock is always enforced regardless of the global
@@ -264,7 +322,7 @@ async function main() {
                     translations: [
                         {
                             languageCode: ctx.languageCode,
-                            name: variantNameForOccurrence(occ.startsAt),
+                            name: optionName,
                         },
                     ],
                 },
