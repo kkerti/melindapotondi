@@ -8,6 +8,15 @@ export default defineConfig({
     build: {
         outDir: join(__dirname, 'dist/dashboard'),
     },
+    server: {
+        fs: {
+            // The vendureDashboardPlugin sets Vite's root to
+            // node_modules/@vendure/dashboard, which excludes this project's
+            // own node_modules from the default allow list. Without this,
+            // deps like awesome-graphql-client fail to serve in dev.
+            allow: [__dirname],
+        },
+    },
     plugins: [
         vendureDashboardPlugin({
             // The vendureDashboardPlugin will scan your configuration in order

@@ -52,17 +52,9 @@ export class BarionShopResolver {
             };
         }
 
-        // Check if order is ready for payment
-        if (!order.shippingAddress || !order.customer) {
-            return {
-                success: false,
-                errorMessage: 'Order is missing customer or shipping information',
-            };
-        }
-
         Logger.info(`Initiating Barion payment for order ${order.code}`, loggerCtx);
 
-        // Transition order to ArrangingPayment state if not already
+        // Transition order to ArrangingPayment state if not already.
         if (order.state !== 'ArrangingPayment') {
             const transitionResult = await this.orderService.transitionToState(ctx, order.id, 'ArrangingPayment' as OrderState);
             
